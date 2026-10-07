@@ -38,9 +38,9 @@
   ];
 
   # Limit build parallelism to prevent CPU explosion during nixos-rebuild switch
-#  nix.settings.max-jobs = 4;
-#  nix.settings.cores = 0; # use all available cores but respect max-jobs
-#  nix.settings.build-timeout = 3600; # 1 hour per derivation
+  #  nix.settings.max-jobs = 4;
+  #  nix.settings.cores = 0; # use all available cores but respect max-jobs
+  #  nix.settings.build-timeout = 3600; # 1 hour per derivation
 
   # Programs
   programs.mtr.enable = true;

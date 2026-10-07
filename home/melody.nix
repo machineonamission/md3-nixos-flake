@@ -33,8 +33,6 @@ in
     ffmpeg
     fnm
     # Note: gdb conflicts with cuda-merged (CUDA includes gdb syscalls)
-    gh
-    git-lfs
     gnupg
     keepassxc
     ninja
@@ -130,32 +128,26 @@ in
     nixfmt-tree
   ];
 
-
-  # Enable direnv for the user
-  programs.direnv.enable = true;
-  programs.direnv.nix-direnv.enable = true;
-
-  # Git config (user-level)
-  programs.git = {
-    enable = true;
-    settings.user.name = "Melody";
-    settings.user.email = "machineonamission@gmail.com";
-  };
-
-  # SSH agent
-  programs.ssh = {
-    enable = true;
-    settings."*".AddKeysToAgent = "yes";
-  };
-
-  # Shell preferences
-  programs.bash = {
-    enable = true;
-    historySize = 100000000;
-    historyControl = [
-      "ignoredups"
-      "erasedups"
-    ];
+  programs = {
+    direnv = {
+      enable = true;
+    };
+    git = {
+      enable = true;
+      settings.user.name = "Melody";
+      settings.user.email = "machineonamission@gmail.com";
+    };
+    ssh = {
+      enable = true;
+      settings."*".AddKeysToAgent = "yes";
+    };
+    bash = {
+      enable = true;
+      historySize = 100000000;
+    };
+    gh = {
+      enable = true;
+    };
   };
 
   # Home-manager version
