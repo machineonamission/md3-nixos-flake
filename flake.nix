@@ -1,7 +1,18 @@
 {
+  nixConfig = {
+    extra-trusted-substituters = [
+      "https://cache.nixos-cuda.org"
+      "https://cache.flox.dev"
+      "https://nix-community.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+      "flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   inputs = {
-    # Using nixos-unstable (26.11) as the base channel
-    nixpkgs.url = "https://channels.nixos.org/nixos-26.05/nixexprs.tar.xz";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     opencode.url = "github:anomalyco/opencode/v2.0.24";
     opencode.inputs.nixpkgs.follows = "nixpkgs";
@@ -18,30 +29,20 @@
     }:
     {
       # NOTE: 'nixos' is the default hostname
-      nixConfig = {
-        extra-trusted-substituters = [
-          "https://cache.nixos-cuda.org"
-          "https://cache.flox.dev"
-        ];
-        extra-trusted-public-keys = [
-          "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-          "flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs="
-        ];
-      };
-      nixosConfigurations."MelDesktop3" = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          ./configuration.nix
-        ];
-        specialArgs = { inherit inputs home-manager; };
-      };
-
-      # Home-manager configuration for user 'melody'
-      homeConfigurations.melody = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        modules = [
-          ./home/melody.nix
-        ];
+      nixosConfigurations = {
+        MelDesktop3 = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs home-manager; };
+          modules = [
+            ./configuration.nix
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.melody = import ./home/melody.nix;
+              home-manager.extraSpecialArgs = { inherit inputs; };
+            }
+          ];
+        };
       };
     };
 }

@@ -4,13 +4,10 @@
   pkgs,
   ...
 }:
-
-let
-  inherit (pkgs) stdenv;
-in
 {
   home.username = "melody";
   home.homeDirectory = "/home/melody";
+  programs.home-manager.enable = true;
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
     # Dev tools

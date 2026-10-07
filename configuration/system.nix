@@ -31,12 +31,6 @@
     jack.enable = true;
   };
 
-  # Nix settings
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
-
   # Limit build parallelism to prevent CPU explosion during nixos-rebuild switch
   #  nix.settings.max-jobs = 4;
   #  nix.settings.cores = 0; # use all available cores but respect max-jobs
@@ -75,6 +69,7 @@
   hardware.cpu.intel.updateMicrocode = true;
 
   # Graphics (Intel iGPU for media, NVIDIA for display)
+  services.xserver.enable = true;
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
