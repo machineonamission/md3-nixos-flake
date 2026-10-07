@@ -31,14 +31,6 @@
   home-manager.useUserPackages = true;
   home-manager.users.melody = import ./home/melody.nix;
 
-  # Use the systemd-boot EFI boot loader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # networking.hostName = "nixos"; # Define your hostname.
-
-  # Configure network connections interactively with nmcli or nmtui.
-  networking.networkmanager.enable = true;
 
   # Set your time zone.
   # time.timeZone = "Europe/Amsterdam";
@@ -135,6 +127,5 @@
   # and migrated your data accordingly.
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
-  system.stateVersion = "26.11"; # Did you read the comment?
 
 }

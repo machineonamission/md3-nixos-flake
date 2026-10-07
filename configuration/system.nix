@@ -92,8 +92,6 @@
 
   programs.fuse.enable = true;
   programs.fuse.userAllowOther = true;
-  # note to m2 from melody: dont hardcode /nix/store shit!
-  # environment.variables.LD_LIBRARY_PATH = "/nix/store/v5i62bjy7v2gfd7mr5rynf3gkj3ami1p-gfortran-16.2.0-lib/lib";
 
-  system.stateVersion = "26.11";
+  system.stateVersion = "26.05";
 }

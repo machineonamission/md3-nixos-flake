@@ -1,12 +1,12 @@
 {
   inputs = {
     # Using nixos-unstable (26.11) as the base channel
-    nixpkgs.url = "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz";
+    nixpkgs.url = "https://channels.nixos.org/nixos-26.05/nixexprs.tar.xz";
 
     opencode.url = "github:anomalyco/opencode/v2.0.24";
     opencode.inputs.nixpkgs.follows = "nixpkgs";
 
-    home-manager.url = "github:nix-community/home-manager/master";
+    home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs =

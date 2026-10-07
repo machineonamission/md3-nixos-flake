@@ -6,8 +6,8 @@
     open = true;
     modesetting.enable = true;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.latest;
-    branch = "latest";
+    package = config.boot.kernelPackages.nvidiaPackages.production;
+    branch = "production";
   };
 
   boot.kernelModules = [
