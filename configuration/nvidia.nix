@@ -1,23 +1,25 @@
 { config, pkgs, ... }: {
-  # NVIDIA video driver — best performer for LLM inference on RTX 5070 Ti (Blackwell GB202)
   services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
     open = true;
     modesetting.enable = true;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+    #package = config.boot.kernelPackages.nvidiaPackages.production;
     branch = "production";
   };
 
-  boot.kernelModules = [
-    "nvidia"
-    "nvidia_modeset"
-    "nvidia_uvm"
-    "nvidia_drm"
-  ];
+  nixpkgs.config = {
+    allowUnfree = true;
+  };
 
-  # CUDA 12.9 for LLM inference (llama.cpp, etc.)
-
-  environment.localBinInPath = true;
+  config.services.llama-cpp = {
+    enable = true;
+    package = (pkgs.llama-cpp.override {
+        cudaSupport = true;
+        nvidia.acceptLicense = true;
+        cudaCapabilities = [ "12.0" ];
+        cudaForwardCompat = true;
+    });
+  };
 }

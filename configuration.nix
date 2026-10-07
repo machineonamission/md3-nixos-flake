@@ -6,26 +6,15 @@
   config,
   lib,
   pkgs,
-  home-manager,
   ...
 }:
 
 {
   imports = [
-    # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ./configuration
-    # Home-manager for user-level packages (replaces the old 70+ system packages)
-#    home-manager.nixosModules.home-manager
   ];
 
-  nixpkgs.config = {
-    allowUnfree = true;
-    nvidia.acceptLicense = true;
-    cudaCapabilities = [ "12.1" ]; # RTX 5070 Ti (GB202 Blackwell)
-    cudaForwardCompat = true;
-    cudaSupport = true;
-  };
   nix.settings = {
     experimental-features = [
       "nix-command"
@@ -41,7 +30,6 @@
       "https://cache.flox.dev"
       "https://nix-community.cachix.org"
     ];
-
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
@@ -49,5 +37,4 @@
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
   };
-
 }

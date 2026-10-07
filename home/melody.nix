@@ -34,7 +34,7 @@
     keepassxc
     ninja
     nodejs
-    obs-studio
+#    obs-studio
     obsidian
     pkg-config
     podman
@@ -95,8 +95,6 @@
     # HPLIP
     hplip
 
-    # NVIDIA / ML inference (system-level, but handy on user PATH)
-    cudatoolkit
 
     # JetBrains IDEs
     jetbrains.clion

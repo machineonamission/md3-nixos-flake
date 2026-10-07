@@ -8,7 +8,7 @@
   # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+#  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Networking
   networking.hostName = "MelDesktop3";
@@ -72,7 +72,7 @@
   services.xserver.enable = true;
   hardware.graphics = {
     enable = true;
-    enable32Bit = true;
+#    enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver
       vpl-gpu-rt

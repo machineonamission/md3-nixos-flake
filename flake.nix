@@ -31,7 +31,7 @@
       # NOTE: 'nixos' is the default hostname
       nixosConfigurations = {
         MelDesktop3 = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs home-manager; };
+          specialArgs = { inherit inputs; };
           modules = [
             ./configuration.nix
             home-manager.nixosModules.home-manager
