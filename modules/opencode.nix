@@ -8,8 +8,18 @@
   #
   # When updating to a newer version, verify the bun dependency is satisfied
   # in nixos-unstable before building opencode-desktop.
+  #
+  # NVIDIA + Wayland Vulkan bug fix: the Electron launcher uses
+  # `--ozone-platform-hint=auto` which crashes on NVIDIA+Wayland.
+  # This override forces `--ozone-platform=x11` to avoid the crash.
   environment.systemPackages = [
     inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode
-    inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode-desktop
+    (inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode-desktop.overrideAttrs (_old: {
+      postInstall = ''
+        # Fix NVIDIA+Wayland Vulkan crash by forcing X11 ozone platform
+        wrapProgram "$out/bin/opencode-desktop" \
+          --add-flags "--ozone-platform=x11"
+      '';
+    }))
   ];
 }

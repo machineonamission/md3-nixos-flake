@@ -8,6 +8,15 @@
   home.username = "melody";
   home.homeDirectory = "/home/melody";
 
+  # Spotify via flatpak (pkgs.spotify removed from nixpkgs 26.11)
+  services.flatpak.enable = true;
+  services.flatpak.packages = [
+    {
+      appId = "com.spotify.Client";
+      origin = "flathub";
+    }
+  ];
+
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
     # Dev tools
@@ -107,7 +116,6 @@
 
     # Games / Entertainment
     discord
-    spotify
     zapzap
     lutris
 

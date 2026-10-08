@@ -1,9 +1,9 @@
 { config, pkgs, lib, ... }: {
-  # X Server + Desktop Environment
+  # Desktop Environment
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
 
-  # Keyboard layout
+  # X Server keyboard layout (moved from hardware.nix after merging xserver.enable)
   services.xserver.xkb = {
     layout = "us";
     variant = "";
@@ -15,6 +15,8 @@
     package = pkgs.openrgb;
     motherboard = "intel";
   };
+
+  # Users & groups
   users.groups.openrgb = { };
   users.users.openrgb = {
     isSystemUser = true;
@@ -24,8 +26,6 @@
       "input"
     ];
   };
-
-  # User configuration
   users.users."melody" = {
     isNormalUser = true;
     description = "Melody";
@@ -37,7 +37,7 @@
     ];
   };
 
-  # Font configuration
+  # Fonts
   fonts.fontconfig = {
     enable = true;
     antialias = true;
@@ -50,4 +50,11 @@
       lcdfilter = "default";
     };
   };
+
+  # Flatpak (for apps removed from nixpkgs, e.g. Spotify)
+  services.flatpak.enable = true;
+
+  # System locale/time
+  time.timeZone = "America/Chicago";
+  i18n.defaultLocale = "en_US.UTF-8";
 }

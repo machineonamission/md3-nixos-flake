@@ -15,14 +15,21 @@
     gnupg
   ];
 
-  # TODO: 2nd git identity? is this possible?
-  programs.git.enable = true;
-  programs.git.config = {
-    user.name = "Melody";
-    user.email = "machineonamission@gmail.com";
+  # Programs: git + other system programs
+  programs.git = {
+    enable = true;
+    config = {
+      user.name = "Melody";
+      user.email = "machineonamission@gmail.com";
+    };
   };
+  # M2 identity — available to root for committing/pushing to GitHub org
+  environment.etc."git-m2.conf".text = ''
+    [user]
+      name = M2
+      email = m2@machineonamission.com
+  '';
 
-  # Other system-wide programs
   programs.firefox.enable = true;
   programs.steam.enable = true;
   programs.kdeconnect.enable = true;

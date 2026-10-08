@@ -1,8 +1,10 @@
 { config, pkgs, lib, ... }: {
   # Networking
-  networking.hostName = "MelDesktop3";
-  networking.networkmanager.enable = true;
-  networking.firewall.enable = false;
+  networking = {
+    hostName = "MelDesktop3";
+    networkmanager.enable = true;
+    firewall.enable = false;
+  };
 
   # SSH — password auth (boot-accessible remote access via SSH + RDP)
   services.openssh.enable = true;
