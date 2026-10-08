@@ -35,7 +35,7 @@
     {
       # NOTE: 'nixos' is the default hostname
       nixosConfigurations = {
-        MelDesktop3 = nixpkgs.lib.nixosSystem {
+        MelDesktop3 = nixpkgs-unstable.lib.nixosSystem {
           specialArgs =
             let
               system = "x86_64-linux";
@@ -46,7 +46,7 @@
 #                inherit system;
 #                config.allowUnfree = true;
 #              };
-              pkgs-unstable = import nixpkgs-unstable {
+              pkgs-llama = import nixpkgs-unstable {
                 inherit system;
                 config = {
                   allowUnfree = true;

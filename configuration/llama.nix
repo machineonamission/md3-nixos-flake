@@ -2,11 +2,11 @@
   config,
   pkgs,
   inputs,
-  pkgs-unstable,
+  pkgs-llama,
   ...
 }:
 {
   environment.systemPackages = with pkgs; [
-    pkgs-unstable.llama-cpp-cuda
+    pkgs-llama.llama-cpp-cuda
   ];
 }

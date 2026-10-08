@@ -2,6 +2,7 @@
   config,
   pkgs,
   inputs,
+  lib,
   ...
 }:
 {
@@ -11,9 +12,10 @@
     open = true;
     modesetting.enable = true;
     nvidiaSettings = true;
-    #package = config.boot.kernelPackages.nvidiaPackages.production;
-    #branch = "production";
+    #package = config.boot.kernelPackages.nvidiaPackages.new_feature;
+    branch = "bleeding_edge";
   };
+  hardware.nvidia-container-toolkit.enable = true;
   # build llama from source
   #  environment.systemPackages = [
   #    inputs.llama-cpp.packages.${pkgs.system}.cuda

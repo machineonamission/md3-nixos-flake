@@ -8,7 +8,7 @@
   # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  #  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Networking
   networking.hostName = "MelDesktop3";
@@ -46,7 +46,7 @@
   # SSH — password auth (boot-accessible)
   services.openssh.enable = true;
 
-  # NTFS filesystem support (Linx 7+ / ntfsprogs-plus, kernel >= 7.1)
+  # "NTFS Resurrection", the linux 7.1+ ntfs driver, is the only one working for my hdd currently
   boot.supportedFilesystems = [ "ntfs" ];
 
   # Filesystem utilities
