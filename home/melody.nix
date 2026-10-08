@@ -162,11 +162,11 @@
   '';
 
   # rclone + SLU OneDrive WebDAV mount
-  xdg.configFile."rclone/rclone.conf".text = ''
+  home.file."config/rclone/rclone.conf".text = ''
     [slu-onedrive]
     type = webdav
     url = https://slu-my.sharepoint.com/personal/melody_neimeyer_slu_edu/Documents
-    vendor = other
+    vendor = sharepoint
     user = melody.neimeyer@slu.edu
     pass = ENC:PLACEHOLDER_FILL_WITH_RCLONE_CONFIG_OUTPUT
   '';
