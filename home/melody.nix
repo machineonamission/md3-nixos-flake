@@ -34,7 +34,7 @@
     keepassxc
     ninja
     nodejs
-#    obs-studio
+    #    obs-studio
     obsidian
     pkg-config
     podman
@@ -94,7 +94,6 @@
 
     # HPLIP
     hplip
-
 
     # JetBrains IDEs
     jetbrains.clion

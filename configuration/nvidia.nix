@@ -1,4 +1,10 @@
-{ config, pkgs, ... }: {
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
+{
   services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
@@ -9,17 +15,9 @@
     branch = "production";
   };
 
-  nixpkgs.config = {
-    allowUnfree = true;
-  };
-
-  config.services.llama-cpp = {
+  services.llama-cpp = {
     enable = true;
-    package = (pkgs.llama-cpp.override {
-        cudaSupport = true;
-        nvidia.acceptLicense = true;
-        cudaCapabilities = [ "12.0" ];
-        cudaForwardCompat = true;
-    });
+    # Inject the flake's optimized package override here
+    package = inputs.llama-cpp.packages.${pkgs.system}.cuda;
   };
 }

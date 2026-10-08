@@ -6,6 +6,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 
@@ -14,6 +15,13 @@
     ./hardware-configuration.nix
     ./configuration
   ];
+
+  nixpkgs.config = {
+    allowUnfree = true;
+    nvidia.acceptLicense = true;
+    cudaCapabilities = [ "12.0" ];
+    cudaForwardCompat = true;
+  };
 
   nix.settings = {
     experimental-features = [
