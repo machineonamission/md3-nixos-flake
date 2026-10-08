@@ -7,6 +7,7 @@
 {
   home.username = "melody";
   home.homeDirectory = "/home/melody";
+
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
     # Dev tools
@@ -123,23 +124,34 @@
     vscode
   ];
 
-  programs = {
-    home-manager.enable = true;
-    direnv.enable = true;
-    git = {
-      settings.user.name = "Melody";
-      settings.user.email = "machineonamission@gmail.com";
-    };
-    ssh.enable = true;
-    bash = {
-      enable = true;
-      historySize = 100000000;
-    };
-    gh = {
-      enable = true;
-      gitCredentialHelper.enable = true;
-    };
+  programs.home-manager.enable = true;
+  programs.direnv.enable = true;
+  programs.git = {
+    settings.user.name = "Melody";
+    settings.user.email = "machineonamission@gmail.com";
   };
+  programs.bash = {
+    enable = true;
+    historySize = 100000000;
+  };
+  programs.gh = {
+    enable = true;
+    gitCredentialHelper.enable = true;
+  };
+
+  # SSH config (raw file — avoids conflict with NixOS programs.ssh module)
+  home.file.".ssh/config".text = ''
+    Host *
+      ForwardAgent no
+      AddKeysToAgent yes
+      Compression no
+      ServerAliveInterval 0
+      ServerAliveCountMax 3
+      HashKnownHosts no
+      ControlMaster auto
+      ControlPath ~/.ssh/master-%r@%n:%p
+  '';
+
 #  services.home-manager.autoUpgrade.enable = true;
   fonts.fontconfig.enable = true;
 

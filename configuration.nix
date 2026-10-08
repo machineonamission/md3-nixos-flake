@@ -13,26 +13,25 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./configuration
+    ./modules
   ];
 
+  # --- Nixpkgs configuration ---
+  # NOTE: cudaSupport = true is deliberately OMITTED here. Setting it forces
+  # rebuild of ALL packages from source (breaks binary cache). The nvidia module
+  # and llama-cpp-cuda derive their own CUDA-aware builds via pkgs-llama.
   nixpkgs.config = {
     allowUnfree = true;
     cudaCapabilities = [ "12.0" ];
     nvidia.acceptLicense = true;
-    # IF YOU PUT THIS THERE IT FUCKS ALL THE PACKAGE CACHE
-    # cudaSupport = true;
   };
 
+  # --- Nix settings (substituters + trusted keys) ---
+  # These are the full set of cache mirrors and their public keys.
   nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    trusted-users = [
-      "melody"
-      "root"
-    ];
+    experimental-features = [ "nix-command" "flakes" ];
+    trusted-users = [ "melody" "root" ];
+
     substituters = [
       "https://cache.nixos.org"
       "https://cache.nixos-cuda.org"
@@ -46,4 +45,7 @@
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
   };
+
+  # --- System state version ---
+  system.stateVersion = "26.11";  # Updated from "26.05" for NixOS 26.11 compatibility
 }
