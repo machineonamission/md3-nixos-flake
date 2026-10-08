@@ -123,6 +123,7 @@
     qdirstat
     nano
     just
+    rclone
     vulkan-loader
     vulkan-headers
     vulkan-tools
@@ -159,6 +160,27 @@
       ControlMaster auto
       ControlPath ~/.ssh/master-%r@%n:%p
   '';
+
+  # rclone + SLU OneDrive WebDAV mount
+  xdg.configFile."rclone/rclone.conf".text = ''
+    [slu-onedrive]
+    type = webdav
+    url = https://slu-my.sharepoint.com/personal/melody_neimeyer_slu_edu/Documents
+    vendor = other
+    user = melody.neimeyer@slu.edu
+    pass = ENC:PLACEHOLDER_FILL_WITH_RCLONE_CONFIG_OUTPUT
+  '';
+
+  systemd.user.services.rclone-slu-onedrive = {
+    Unit.Description = "SLU OneDrive WebDAV mount via rclone";
+    Install.WantedBy = [ "default.target" ];
+    Service.Type = "notify";
+    Service.ExecStart = "${pkgs.rclone}/bin/rclone mount slu-onedrive:/ /home/melody/slu-onedrive --vfs-cache-mode full --vfs-cache-max-size 1G --vfs-cache-max-age 1h --log-level INFO --log-file /tmp/rclone-slu.log";
+    Service.Restart = "on-failure";
+    Service.RestartSec = 5;
+  };
+
+
 
 #  services.home-manager.autoUpgrade.enable = true;
   fonts.fontconfig.enable = true;
