@@ -7,7 +7,6 @@
 {
   home.username = "melody";
   home.homeDirectory = "/home/melody";
-  programs.home-manager.enable = true;
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
     # Dev tools
@@ -120,29 +119,29 @@
     vulkan-tools
 
     nixfmt-tree
+
+    vscode
   ];
 
   programs = {
-    direnv = {
-      enable = true;
-    };
+    home-manager.enable = true;
+    direnv.enable = true;
     git = {
-      enable = true;
       settings.user.name = "Melody";
       settings.user.email = "machineonamission@gmail.com";
     };
-    ssh = {
-      enable = true;
-      settings."*".AddKeysToAgent = "yes";
-    };
+    ssh.enable = true;
     bash = {
       enable = true;
       historySize = 100000000;
     };
     gh = {
       enable = true;
+      gitCredentialHelper.enable = true;
     };
   };
+#  services.home-manager.autoUpgrade.enable = true;
+  fonts.fontconfig.enable = true;
 
   # Home-manager version
   home.stateVersion = "26.05";

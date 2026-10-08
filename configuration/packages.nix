@@ -15,5 +15,11 @@
     gnupg
   ];
 
-  programs.git.enable = true;
+  programs = {
+    git.enable = true;
+    firefox.enable = true;
+    steam.enable = true;
+    kdeconnect.enable = true;
+  };
+
 }

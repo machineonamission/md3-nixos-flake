@@ -67,9 +67,7 @@
   };
 
   # Desktop applications
-  programs.firefox.enable = true;
-  programs.steam.enable = true;
-  programs.kdeconnect.enable = true;
+
   # OneDrive sync daemon disabled — it watches Nix store paths and triggers constant rebuilds
   # services.onedrive.enable = true;
 
@@ -105,8 +103,4 @@
       lcdfilter = "default";
     };
   };
-
-  # Directory environment
-  programs.direnv.enable = true;
-  programs.direnv.nix-direnv.enable = true;
 }

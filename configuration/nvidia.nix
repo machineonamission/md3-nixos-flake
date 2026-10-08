@@ -12,7 +12,7 @@
     open = true;
     modesetting.enable = true;
     nvidiaSettings = true;
-    #package = config.boot.kernelPackages.nvidiaPackages.new_feature;
+    # BLEEDING EDGE BRANCH + NIXOS-UNSTABLE (not 26.05) IS ONLY WAY TO GET LINUX 7 COMPATIBLE DRIVER OH MY GOD
     branch = "bleeding_edge";
   };
   hardware.nvidia-container-toolkit.enable = true;
