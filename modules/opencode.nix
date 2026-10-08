@@ -1,4 +1,11 @@
-{ config, pkgs, lib, inputs, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
+{
   # OpenCode CLI + Desktop GUI from pinned v2.0.24 flake input.
   #
   # WHY PINNED: nixos-unstable has a bun version mismatch bug
@@ -19,6 +26,14 @@
         # Fix NVIDIA+Wayland Vulkan crash by forcing X11 ozone platform
         wrapProgram "$out/bin/opencode-desktop" \
           --add-flags "--ozone-platform=x11"
+
+        # Fix desktop freeze on open: the upstream build script creates the bundled CLI
+        # in a temp dir ($TMPDIR/desktop-cli) but never copies it into resources/.
+        # The desktop app's `desktop-cli.ts` spawns this binary for version detection;
+        # without it, `parseCliVersion("")` throws and the startup pipeline hangs.
+        mkdir -p "$out/opt/opencode-desktop/resources"
+        cp ${lib.getExe inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode} \
+          "$out/opt/opencode-desktop/resources/opencode-cli"
       '';
     }))
   ];
