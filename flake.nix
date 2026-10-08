@@ -24,7 +24,7 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     llama-cpp.url = "github:ggml-org/llama.cpp/v0.6.0";
-    #llama-cpp.inputs.nixpkgs.follows = "nixpkgs";
+    llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
   outputs =
     inputs@{
