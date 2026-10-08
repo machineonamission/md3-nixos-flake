@@ -18,9 +18,10 @@
 
   nixpkgs.config = {
     allowUnfree = true;
-    nvidia.acceptLicense = true;
     cudaCapabilities = [ "12.0" ];
-    cudaForwardCompat = true;
+    nvidia.acceptLicense = true;
+    # IF YOU PUT THIS THERE IT FUCKS ALL THE PACKAGE CACHE
+    # cudaSupport = true;
   };
 
   nix.settings = {

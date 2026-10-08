@@ -12,12 +12,14 @@
     modesetting.enable = true;
     nvidiaSettings = true;
     #package = config.boot.kernelPackages.nvidiaPackages.production;
-    branch = "production";
+    #branch = "production";
   };
-
-  services.llama-cpp = {
+  # build llama from source
+  #  environment.systemPackages = [
+  #    inputs.llama-cpp.packages.${pkgs.system}.cuda
+  #  ];
+  services.llama-swap = {
     enable = true;
-    # Inject the flake's optimized package override here
-    package = inputs.llama-cpp.packages.${pkgs.system}.cuda;
+    port = 9930;
   };
 }

@@ -28,6 +28,7 @@
     inputs@{
       self,
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
       ...
     }:
@@ -35,7 +36,26 @@
       # NOTE: 'nixos' is the default hostname
       nixosConfigurations = {
         MelDesktop3 = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
+          specialArgs =
+            let
+              system = "x86_64-linux";
+            in
+            {
+              inherit inputs;
+#              pkgs = import nixpkgs {
+#                inherit system;
+#                config.allowUnfree = true;
+#              };
+              pkgs-unstable = import nixpkgs-unstable {
+                inherit system;
+                config = {
+                  allowUnfree = true;
+                  cudaSupport = true;
+                  cudaCapabilities = [ "12.0" ];
+                  nvidia.acceptLicense = true;
+                };
+              };
+            };
           modules = [
             ./configuration.nix
             home-manager.nixosModules.home-manager

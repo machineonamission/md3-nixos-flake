@@ -12,5 +12,6 @@
     ./desktop.nix
     ./packages.nix
     ./opencode.nix
+    ./llama.nix
   ];
 }
