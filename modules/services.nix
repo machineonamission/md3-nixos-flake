@@ -16,12 +16,6 @@
     jack.enable = true;
   };
 
-  # LLaMA Swap — model swapping for local LLM serving (port 9930)
-  services.llama-swap = {
-    enable = true;
-    port = 9930;
-  };
-
   # Howdy facial recognition (boot-accessible login)
   services.howdy = {
     enable = true;
