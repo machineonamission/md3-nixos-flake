@@ -13,6 +13,9 @@
     nixfmt
     ccache
     gnupg
+    atkinson-hyperlegible-next
+    atkinson-hyperlegible-mono
+    noto-fonts
   ];
 
   # Programs: git + other system programs

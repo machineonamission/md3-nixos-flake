@@ -89,11 +89,7 @@
     kdePackages.kio-admin
     posy-cursors
     flameshot
-
-    # Fonts
-    atkinson-hyperlegible-next
-    atkinson-hyperlegible-mono
-
+    
     # Wine / Compatibility
     wineWow64Packages.stable
     winetricks
@@ -131,6 +127,8 @@
     nixfmt-tree
 
     vscode
+
+    python314Packages.huggingface-hub
   ];
 
   programs.home-manager.enable = true;

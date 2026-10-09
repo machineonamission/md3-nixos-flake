@@ -1,7 +1,11 @@
 { config, pkgs, lib, ... }: {
   # Desktop Environment
-  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+  };
   services.desktopManager.plasma6.enable = true;
+  services.displayManager.defaultSession = "plasma";
 
   # X Server keyboard layout (moved from hardware.nix after merging xserver.enable)
   services.xserver.xkb = {
@@ -57,4 +61,6 @@
   # System locale/time
   time.timeZone = "America/Chicago";
   i18n.defaultLocale = "en_US.UTF-8";
+
+  security.pam.services.melody.kwallet.enable = true;
 }
