@@ -16,7 +16,7 @@
   # OpenRGB lighting (minimal — not all-plugins which is huge)
   services.hardware.openrgb = {
     enable = true;
-    package = pkgs.openrgb;
+    package = pkgs.openrgb-with-all-plugins;
     motherboard = "intel";
   };
 
