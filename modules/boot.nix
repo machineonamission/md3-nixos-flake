@@ -6,6 +6,8 @@
   # Linux 7.1+ "NTFS Resurrection" kernel — required for BitLocker/NTFS HDD access
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  boot.kernelModules = [ "coretemp" "nct6683" ];
+
   # Limit build parallelism to prevent CPU explosion during nixos-rebuild switch
   # nix.settings.max-jobs = 4;
   # nix.settings.cores = 0;   # use all available cores but respect max-jobs
