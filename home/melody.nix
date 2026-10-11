@@ -129,6 +129,8 @@
     vscode
 
     python314Packages.huggingface-hub
+
+    systemdgenie
   ];
 
   programs.home-manager.enable = true;
