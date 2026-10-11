@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   # Desktop Environment
   services.displayManager.sddm = {
     enable = true;
@@ -63,4 +69,13 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   security.pam.services.melody.kwallet.enable = true;
+
+  services.monado = {
+    enable = true;
+    defaultRuntime = true; # Register as default OpenXR runtime
+  };
+  systemd.user.services.monado.environment = {
+    STEAMVR_LH_ENABLE = "1";
+    XRT_COMPOSITOR_COMPUTE = "1";
+  };
 }
