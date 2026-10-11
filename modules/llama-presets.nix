@@ -46,7 +46,7 @@ let
     --reasoning on --reasoning-format auto --reasoning-budget -1 --reasoning-effort high
     --jinja --kv-unified enabled
     --spec-type none
-    --host 0.0.0.0 --port ${PORT} --parallel 4
+    --host 0.0.0.0 --parallel 4
     --cont-batching --cache-prompt --cache-idle-slots --slots
     --timeout 3600 --metrics --webui --embedding
     --slot-prompt-similarity 0.1 --cache-reuse 0
