@@ -42,14 +42,5 @@
     userAllowOther = true;
   };
   programs.partition-manager.enable = true;
-  programs.nix-ld = {
-    enable = true;
-    libraries = with pkgs; [
-      openssl
-      stdenv.cc.cc
-      zlib
-      libffi
-      glibc
-    ];
-  };
+  programs.nix-ld.enable = true;
 }
