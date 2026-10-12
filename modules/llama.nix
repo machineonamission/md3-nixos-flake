@@ -5,7 +5,7 @@
   ];
 
     # LLaMA Swap — model swapping for local LLM serving (port 9930)
-  services.llama-swap = {
+  /*services.llama-swap = {
     enable = true;
     port = 9930;
   };
@@ -13,5 +13,5 @@
   services.ollama = {
     enable = true;
     package = pkgs-llama.ollama-cuda;
-  };
+  };*/
 }
