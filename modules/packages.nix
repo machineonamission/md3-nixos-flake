@@ -16,6 +16,9 @@
     atkinson-hyperlegible-next
     atkinson-hyperlegible-mono
     noto-fonts
+
+    openssl.dev
+    pkg-config
   ];
 
   # Programs: git + other system programs
