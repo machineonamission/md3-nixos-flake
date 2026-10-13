@@ -8,6 +8,7 @@
     ./desktop.nix
     ./opencode.nix
     ./llama.nix
+    ./portable.nix
     #./llama-presets.nix
   ];
 }

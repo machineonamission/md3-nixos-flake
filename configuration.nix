@@ -29,8 +29,14 @@
   # --- Nix settings (substituters + trusted keys) ---
   # These are the full set of cache mirrors and their public keys.
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "melody" "root" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    trusted-users = [
+      "melody"
+      "root"
+    ];
 
     substituters = [
       "https://cache.nixos.org"
@@ -46,6 +52,11 @@
     ];
   };
 
+  # --- Portable apps (nix-ld + run-portable wrapper) ---
+  # Fully-featured nix-ld: preload common libs (openssl, icu, fonts, etc.) for
+  # every Nix app, plus a `run-portable` wrapper for arbitrary portable apps.
+  programs.portableApps.enable = true;
+
   # --- System state version ---
-  system.stateVersion = "26.11";  # Updated from "26.05" for NixOS 26.11 compatibility
+  system.stateVersion = "26.11"; # Updated from "26.05" for NixOS 26.11 compatibility
 }
