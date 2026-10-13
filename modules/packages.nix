@@ -20,6 +20,8 @@
     openssl.dev
     pkg-config
     android-tools
+
+    kdePackages.xdg-desktop-portal-kde
   ];
 
   # Programs: git + other system programs

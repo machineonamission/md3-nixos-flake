@@ -17,7 +17,7 @@
       origin = "flathub";
     }
   ];
-  xdg.portal.enable = true;
+
 
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [

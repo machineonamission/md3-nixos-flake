@@ -12,6 +12,7 @@
   };
   services.desktopManager.plasma6.enable = true;
   services.displayManager.defaultSession = "plasma";
+  xdg.portal.enable = true;
 
   # X Server keyboard layout (moved from hardware.nix after merging xserver.enable)
   services.xserver.xkb = {
