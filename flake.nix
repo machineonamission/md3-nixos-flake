@@ -19,7 +19,7 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     # Flatpak (needed for Spotify — flatpak module not yet in nixpkgs 26.11)
-    nixos-flatpak.url = "github:gmodena/nix-flatpak/v0.7.0";
+    nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
 
     # LLaMA C++ (CUDA build from source)
     llama-cpp.url = "github:ggml-org/llama.cpp/v0.6.0";

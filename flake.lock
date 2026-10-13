@@ -62,16 +62,16 @@
     },
     "nixos-flatpak": {
       "locked": {
-        "lastModified": 1767983141,
-        "narHash": "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=",
+        "lastModified": 1790428548,
+        "narHash": "sha256-OsZ/I7v3ArCrk0XOUvkiU1dFtGtE1qZTHRGjvBXIKUU=",
         "owner": "gmodena",
         "repo": "nix-flatpak",
-        "rev": "440818969ac2cbd77bfe025e884d0aa528991374",
+        "rev": "f1f045fc8b35ff59f88982c1752d3f3a42ca6a61",
         "type": "github"
       },
       "original": {
         "owner": "gmodena",
-        "ref": "v0.7.0",
+        "ref": "latest",
         "repo": "nix-flatpak",
         "type": "github"
       }
@@ -130,16 +130,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1791488743,
-        "narHash": "sha256-umhEz5um90EiBHvVZzQw+HoBFO088ZI1g7Ost9BUxhM=",
+        "lastModified": 1791255852,
+        "narHash": "sha256-xrHI6e4Wq32QNX+xmpb/Psf3kBFT7Z5grmCnxMFEK5E=",
         "owner": "anomalyco",
         "repo": "opencode",
-        "rev": "9b4ec5714d481559990db0a816d5dec19541a814",
+        "rev": "e7a34f09bfd9134dfade5a8ddb843f7030bc9a69",
         "type": "github"
       },
       "original": {
         "owner": "anomalyco",
-        "ref": "v2.0.26",
+        "ref": "v2.0.24",
         "repo": "opencode",
         "type": "github"
       }

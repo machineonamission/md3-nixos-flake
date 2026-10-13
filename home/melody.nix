@@ -10,12 +10,14 @@
 
   # Spotify via flatpak (pkgs.spotify removed from nixpkgs 26.11)
   services.flatpak.enable = true;
+  # note, m2 may have hallucinated packageS plural?
   services.flatpak.packages = [
     {
       appId = "com.spotify.Client";
       origin = "flathub";
     }
   ];
+  xdg.portal.enable = true;
 
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
@@ -133,6 +135,10 @@
     systemdgenie
     godot
     kdePackages.kjournald
+
+    flatpak
+    flatpak-builder
+    flatpak-xdg-utils
   ];
 
   programs.home-manager.enable = true;
