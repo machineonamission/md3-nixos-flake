@@ -134,6 +134,16 @@
     # Renamed so its desktop entry + URL-handler scheme don't collide with `vscode`.
     (vscode-fhs.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
+        # $out/share is a symlink into the read-only store, so replace it with a
+        # writable copy before renaming the fhs desktop entries. This avoids
+        # colliding with the primary `vscode` package, which shares
+        # executableName="code" and the x-scheme-handler/vscode URL scheme.
+        if [ -L "$out/share" ]; then
+          __fhs_share=$(readlink "$out/share")
+          rm -f "$out/share"
+          cp -aL "$__fhs_share" "$out/share"
+        fi
+
         if [ -e "$out/share/applications/code.desktop" ]; then
           mv "$out/share/applications/code.desktop" "$out/share/applications/code-fhs.desktop"
           sed -i 's#^Name=Visual Studio Code$#Name=Visual Studio Code (FHS)#' "$out/share/applications/code-fhs.desktop"
@@ -154,10 +164,20 @@
     godot
     kdePackages.kjournald
 
+    shellcheck
+
+    # flatpak tooling (artemis lmao)
     flatpak
     flatpak-builder
     flatpak-xdg-utils
-    shellcheck
+    yq
+
+    # nix tooling
+    nixfmt
+    nixd
+    nil
+    statix
+    alejandra
   ];
 
   programs.home-manager.enable = true;
