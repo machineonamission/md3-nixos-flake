@@ -128,9 +128,9 @@
 
     nixfmt-tree
 
-    #vscode
+    vscode
     # "fhs" (ie nix-ld i assume bundled) wrapped env
-    vscode-fhs
+    #vscode-fhs
 
     python314Packages.huggingface-hub
 
