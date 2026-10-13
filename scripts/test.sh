@@ -1,5 +1,7 @@
 #!bash
 
+set -euo pipefail
+
 # cd to script parent dir, flake dir
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 # this changes flake.lock

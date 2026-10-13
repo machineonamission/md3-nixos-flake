@@ -132,7 +132,7 @@
 
     # Backup for weird dev stuff that needs the FHS sandbox (native ext binaries).
     # Renamed so its desktop entry + URL-handler scheme don't collide with `vscode`.
-    (vscode-fhs.overrideAttrs (old: {
+    /*(vscode-fhs.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
         # $out/share is a symlink into the read-only store, so replace it with a
         # writable copy before renaming the fhs desktop entries. This avoids
@@ -156,7 +156,7 @@
             "$out/share/applications/code-fhs-url-handler.desktop"
         fi
       '';
-    }))
+    }))*/
 
     python314Packages.huggingface-hub
 
