@@ -86,7 +86,7 @@ in
     Enable nix-ld with an expanded library set and the run-portable wrapper.
   '';
 
-  config = lib.mkIf options.programs.portableApps.enable {
+  config = lib.mkIf config.programs.portableApps.enable {
     # --- Fully-featured nix-ld ---
     # Preload the common libs for every Nix app so they just work without
     # per-app LD_LIBRARY_PATH fiddling (this fixes the "openssl" pain point
