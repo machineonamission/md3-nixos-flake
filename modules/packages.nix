@@ -19,6 +19,7 @@
 
     openssl.dev
     pkg-config
+    android-tools
   ];
 
   # Programs: git + other system programs
@@ -40,6 +41,6 @@
   programs.steam.enable = true;
   programs.kdeconnect.enable = true;
 
-    programs.adb.enable = true;
+  #programs.adb.enable = true;
   users.users.melody.extraGroups = ["adbusers"];
 }
