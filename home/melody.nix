@@ -131,6 +131,8 @@
     python314Packages.huggingface-hub
 
     systemdgenie
+    godot
+    kdePackages.kjournald
   ];
 
   programs.home-manager.enable = true;
