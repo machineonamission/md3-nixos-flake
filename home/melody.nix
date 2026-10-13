@@ -129,8 +129,24 @@
     nixfmt-tree
 
     vscode
-    # "fhs" (ie nix-ld i assume bundled) wrapped env
-    #vscode-fhs
+
+    # Backup for weird dev stuff that needs the FHS sandbox (native ext binaries).
+    # Renamed so its desktop entry + URL-handler scheme don't collide with `vscode`.
+    (vscode-fhs.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        if [ -e "$out/share/applications/code.desktop" ]; then
+          mv "$out/share/applications/code.desktop" "$out/share/applications/code-fhs.desktop"
+          sed -i 's#^Name=Visual Studio Code$#Name=Visual Studio Code (FHS)#' "$out/share/applications/code-fhs.desktop"
+        fi
+        if [ -e "$out/share/applications/code-url-handler.desktop" ]; then
+          mv "$out/share/applications/code-url-handler.desktop" "$out/share/applications/code-fhs-url-handler.desktop"
+          sed -i \
+            -e 's#^MimeType=x-scheme-handler/vscode$#MimeType=x-scheme-handler/vscode-fhs#' \
+            -e 's#^Name=Visual Studio Code - URL Handler$#Name=Visual Studio Code (FHS) - URL Handler#' \
+            "$out/share/applications/code-fhs-url-handler.desktop"
+        fi
+      '';
+    }))
 
     python314Packages.huggingface-hub
 
@@ -141,6 +157,7 @@
     flatpak
     flatpak-builder
     flatpak-xdg-utils
+    shellcheck
   ];
 
   programs.home-manager.enable = true;
