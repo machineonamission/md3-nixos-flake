@@ -64,7 +64,7 @@
 
             # Where llama-swap routes API requests. Defaults to
             # http://localhost:${PORT}; written here explicitly.
-            proxy = "http://localhost:\${PORT}";
+            # proxy = "http://localhost:\${PORT}";
             checkEndpoint = "/health"; # default; set to "none" to skip health check
 
             # What modalities this model exposes (used in /v1/models).
@@ -81,12 +81,6 @@
               context = 262144;
             };
 
-            # Alternative names for this model (must be unique globally).
-            aliases = [
-              "Tiel"
-              "tiel"
-              "tiel coder"
-            ];
 
             # ---- reasoning profiles (no reload) ----
             # setParamsByID sets request-body params based on which model ID
