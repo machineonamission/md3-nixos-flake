@@ -72,15 +72,15 @@
   security.pam.services.melody.kwallet.enable = true;
 
   services.monado = {
-    enable = true;
+    enable = false;
     #defaultRuntime = true; # Register as default OpenXR runtime
   };
+  # Quest 3 uses inside-out tracking — there are no lighthouse base stations, so
+  # STEAMVR_LH_ENABLE points Monado at a nonexistent lighthouse driver. This is a
+  # documented Monado segfault cause (comp_renderer_draw -> compositor_layer_commit),
+  # exactly the crash you're seeing. Removed. WiVRn is the Quest 3 runtime here.
   services.wivrn = {
     enable = true;
     openFirewall = true;
-  };
-  systemd.user.services.monado.environment = {
-    STEAMVR_LH_ENABLE = "1";
-    XRT_COMPOSITOR_COMPUTE = "1";
   };
 }
