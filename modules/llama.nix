@@ -87,6 +87,17 @@
               context = 262144;
             };
 
+            # ---- reasoning profiles (no reload) ----
+            # Explicit aliases so the variants show up in /v1/models (needs the
+            # includeAliasesInList above). setParamsByID below then sets
+            # reasoning_effort per variant — llama-swap sees these already exist
+            # as aliases and just layers the param override on top, no conflict.
+            # OpenCode then sees llama-swap/Tiel-Coder-35B-A3B:high/:low/:medium.
+            aliases = [
+              "\${MODEL_ID}:high"
+              "\${MODEL_ID}:low"
+              "\${MODEL_ID}:medium"
+            ];
 
             # ---- reasoning profiles (no reload) ----
             # setParamsByID sets request-body params based on which model ID
