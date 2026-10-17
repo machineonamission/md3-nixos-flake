@@ -23,7 +23,7 @@
   services.llama-swap = {
     enable = true;
     port = 9930; # llama-swap front door
-    startPort = 9931; # ${PORT} starts here -> llama-server on 9931
+   # startPort = 9931; # ${PORT} starts here -> llama-server on 9931
 
     settings = {
       # preset.presets[0].data
