@@ -78,7 +78,6 @@
   services.wivrn = {
     enable = true;
     openFirewall = true;
-    defaultRuntime = true;
   };
   systemd.user.services.monado.environment = {
     STEAMVR_LH_ENABLE = "1";
