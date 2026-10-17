@@ -93,11 +93,11 @@
             # reasoning_effort per variant — llama-swap sees these already exist
             # as aliases and just layers the param override on top, no conflict.
             # OpenCode then sees llama-swap/Tiel-Coder-35B-A3B:high/:low/:medium.
-            aliases = [
-              "\${MODEL_ID}:high"
-              "\${MODEL_ID}:low"
-              "\${MODEL_ID}:medium"
-            ];
+            # aliases = [
+            #   "\${MODEL_ID}#high"
+            #   "\${MODEL_ID}#low"
+            #   "\${MODEL_ID}#medium"
+            # ];
 
             # ---- reasoning profiles (no reload) ----
             # setParamsByID sets request-body params based on which model ID
@@ -105,17 +105,17 @@
             # key, so `Tiel-Coder-35B-A3B:high` selects reasoning_effort: high
             # without reloading. Protected params like "model" can't be changed.
             setParamsByID = {
-              "\${MODEL_ID}:medium" = {
+              "\${MODEL_ID}#:medium" = {
                 chat_template_kwargs = {
                   reasoning_effort = "medium";
                 };
               };
-              "\${MODEL_ID}:high" = {
+              "\${MODEL_ID}#high" = {
                 chat_template_kwargs = {
                   reasoning_effort = "high";
                 };
               };
-              "\${MODEL_ID}:low" = {
+              "\${MODEL_ID}#low" = {
                 chat_template_kwargs = {
                   reasoning_effort = "low";
                 };
