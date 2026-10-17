@@ -82,6 +82,6 @@
   services.wivrn = {
     enable = true;
     openFirewall = true;
-    importOXRRuntimes = true;
+    steam.importOXRRuntimes = true;
   };
 }
