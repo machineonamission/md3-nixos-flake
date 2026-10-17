@@ -71,10 +71,10 @@
 
   security.pam.services.melody.kwallet.enable = true;
 
-  services.monado = {
-    enable = false;
-    #defaultRuntime = true; # Register as default OpenXR runtime
-  };
+  # services.monado = {
+  #   enable = false;
+  #   #defaultRuntime = true; # Register as default OpenXR runtime
+  # };
   # Quest 3 uses inside-out tracking — there are no lighthouse base stations, so
   # STEAMVR_LH_ENABLE points Monado at a nonexistent lighthouse driver. This is a
   # documented Monado segfault cause (comp_renderer_draw -> compositor_layer_commit),
@@ -82,5 +82,6 @@
   services.wivrn = {
     enable = true;
     openFirewall = true;
+    importOXRRuntimes = true;
   };
 }
