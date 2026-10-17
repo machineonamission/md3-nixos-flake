@@ -105,7 +105,7 @@
             # key, so `Tiel-Coder-35B-A3B:high` selects reasoning_effort: high
             # without reloading. Protected params like "model" can't be changed.
             setParamsByID = {
-              "\${MODEL_ID}#:medium" = {
+              "\${MODEL_ID}#medium" = {
                 chat_template_kwargs = {
                   reasoning_effort = "medium";
                 };
