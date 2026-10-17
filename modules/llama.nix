@@ -50,7 +50,7 @@
   # The module runs llama-swap as a DynamicUser (no group memberships), so it
   # can't open the NVIDIA device nodes (root:video, 660) for CUDA even though
   # it sets PrivateDevices = false. Add the video group to enable GPU.
-  systemd.services.llama-swap.supplementaryGroups = [ "video" ];
+  # systemd.services.llama-swap.supplementaryGroups = [ "video" ];
 
   /*
     services.ollama = {
