@@ -178,6 +178,8 @@
     nil
     statix
     alejandra
+
+    kdePackages.kfind
   ];
 
   programs.home-manager.enable = true;
