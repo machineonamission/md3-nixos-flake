@@ -2,14 +2,15 @@
   # LLaMA C++ CUDA build from source (uses nixpkgs-unstable with cudaSupport)
   environment.systemPackages = with pkgs-llama; [
     llama-cpp-cuda
+    llama-swap
   ];
 
     # LLaMA Swap — model swapping for local LLM serving (port 9930)
-  /*services.llama-swap = {
+  services.llama-swap = {
     enable = true;
     port = 9930;
   };
-
+/*
   services.ollama = {
     enable = true;
     package = pkgs-llama.ollama-cuda;
