@@ -54,6 +54,12 @@
         healthCheckTimeout = 500;
         sendLoadingState = true; # inject loading updates into the reasoning field
 
+        # includeAliasesInList pushes the reasoning-effort variants (:high/:low/:medium)
+        # into /v1/models. Without it, llama-swap only lists the base model ID and
+        # OpenCode's model discovery can't see the variants even though they route
+        # and apply reasoning_effort fine. This is what makes them selectable in @opencode.
+        includeAliasesInList = true;
+
         # ---- models ---------------------------------------------------------
         models = {
           "Tiel-Coder-35B-A3B" = {
