@@ -27,6 +27,8 @@
       };
       core = {
         detection_notice = true;
+        # Skip facial auth on SSH logins (otherwise Howdy tries face recognition, times out, and falls back to password)
+        abort_if_ssh = false;
       };
     };
   };
