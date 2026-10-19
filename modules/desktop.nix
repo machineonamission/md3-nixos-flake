@@ -5,14 +5,18 @@
   ...
 }:
 let
-  # Custom SDDM greeter that matches the Plasma lock screen: full-screen
-  # AURORA wallpaper + centered clock/avatar/password bar. Built from
-  # ./modules/sddm/aurora (a copy of the 6.8.0 breeze theme repointed at
-  # AURORA.jpg). The wallpaper is copied into the store so the sddm user can
-  # read it before login.
-  sddmAuroraTheme = pkgs.runCommand "sddm-aurora-theme" { } ''
+  # Your desktop/lock wallpaper, copied into the store so the pre-login
+  # sddm user can read it. The shipped breeze theme points at its own
+  # bundled wallpaper, so instead of shipping custom QML we reuse the
+  # shipped breeze theme and just write a fresh theme.conf pointing at
+  # AURORA.jpg (see ./sddm/aurora-theme.conf).
+  auroraTheme = pkgs.runCommand "sddm-aurora-theme" { } ''
     mkdir -p $out/share/sddm/themes
-    cp -r ${./sddm/aurora} $out/share/sddm/themes/aurora
+    cp -r ${pkgs.kdePackages.plasma-desktop}/share/sddm/themes/breeze $out/share/sddm/themes/aurora
+    chmod -R u+w $out/share/sddm/themes/aurora
+    sed "s#PLACEHOLDER#${pkgs.kdePackages.plasma-desktop}#" ${./sddm/aurora-theme.conf} > $out/share/sddm/themes/aurora/theme.conf
+    cp ${./sddm/AURORA.jpg} $out/share/sddm/themes/aurora/wallpaper.jpg
+    chmod a+r $out/share/sddm/themes/aurora/wallpaper.jpg
   '';
 in
 {
@@ -23,12 +27,12 @@ in
     theme = "aurora";
   };
 
-  # Place the custom "aurora" SDDM theme into the store so SDDM can load it
-  # before login (needs to be world-readable; the bundled breeze wallpaper
-  # isn't the one we want).
-  environment.etc."share/sddm/themes/aurora" = {
-    source = "${sddmAuroraTheme}/share/sddm/themes/aurora";
-  };
+  # Put the theme where SDDM looks for it. system.path is a buildEnv over
+  # environment.systemPackages (ignoreCollisions = true), so adding the
+  # theme there merges its sw/ tree into /run/current-system/sw, where SDDM
+  # looks. (environment.etc goes to /etc and is never read by SDDM — that was
+  # the reason the first attempt didn't apply.)
+  environment.systemPackages = [ auroraTheme ];
   services.desktopManager.plasma6.enable = true;
   services.displayManager.defaultSession = "plasma";
   xdg.portal.enable = true;
