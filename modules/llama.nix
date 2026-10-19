@@ -39,7 +39,18 @@
   #                        useful only once you have more than one model.
   services.llama-swap =
     let
-      llama-cpp = pkgs.llama-cpp-cuda;
+      # Unified CUDA + Vulkan build. pkgs-llama was imported with cudaSupport
+      # only (llama-cpp-cuda), which can only talk to the NVIDIA dGPU. Overriding
+      # both flags produces one binary that sees BOTH devices:
+      #   * CUDA  -> NVIDIA RTX 5070 Ti  (the fast card, holds the model weights)
+      #   * Vulkan-> Intel Graphics RPL-S (the iGPU, holds only the small mmproj)
+      # We keep the heavy model on CUDA and offload ONLY the mmproj to the iGPU
+      # (the iGPU is slow integrated graphics — putting model layers there would
+      # tank generation speed).
+      llama-cpp = pkgs-llama.llama-cpp.override {
+        cudaSupport = true;
+        vulkanSupport = true;
+      };
       llama-server = lib.getExe' llama-cpp "llama-server";
     in
     {
@@ -66,7 +77,7 @@
             name = "Tiel Coder 35B A3B (NanoPlus)";
 
             # --hf-token "REPLACE_WITH_YOUR_HF_TOKEN"
-            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --no-mmproj-offload --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --dry-multiplier 0 -rea on --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type none --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
+            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --mmproj-offload --mmproj-device Vulkan0 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --dry-multiplier 0 -rea on --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type none --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
 
             # Where llama-swap routes API requests. Defaults to
             # http://localhost:${PORT}; written here explicitly.
@@ -147,7 +158,7 @@
           #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"mtp"}'
           "Qwen3.6-35B-A3B-MTP" = {
             name = "Qwen3.6 35B A3B MTP (NanoPlus)";
-            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --no-mmproj-offload --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type draft-mtp --spec-draft-n-max 8 --spec-draft-p-min 0.6 --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
+            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --mmproj-offload --mmproj-device Vulkan0 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type draft-mtp --spec-draft-n-max 8 --spec-draft-p-min 0.6 --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
             checkEndpoint = "/health";
             capabilities = {
               "in" = [
@@ -229,6 +240,23 @@
         #   };
       };
     };
+
+  # The Vulkan iGPU (Intel RPL-S) is reached by llama-server through the Vulkan
+  # loader. The service runs as a DynamicUser with a restricted PATH, so the
+  # loader can't find Intel's ICD via the default search path. Point
+  # VK_ICD_FILENAMES directly at Intel's ICD JSON so the iGPU is enumerable.
+  #
+  # Only Intel is listed on purpose: the NVIDIA card is reached via CUDA, so
+  # this makes the Vulkan device index == Intel RPL-S deterministically
+  # (Vulkan0).
+  #
+  # CRITICAL: use the x86_64 ICD JSON, NOT the i686 one. The shipped
+  # intel_icd.i686.json declares library_arch "32" but the loader is 64-bit, so
+  # it silently rejects it and the iGPU never shows up. The x86_64 JSON pairs
+  # with the 64-bit libvulkan_intel.so and is what actually enumerates.
+  # (Set on the generated systemd service, not inside services.llama-swap.)
+  systemd.services.llama-swap.environment.VK_ICD_FILENAMES =
+    "${pkgs.mesa}/share/vulkan/icd.d/intel_icd.x86_64.json";
 
   # The module runs llama-swap as a DynamicUser (no group memberships), so it
   # can't open the NVIDIA device nodes (root:video, 660) for CUDA even though

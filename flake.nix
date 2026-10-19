@@ -55,6 +55,7 @@
                 config = {
                   allowUnfree = true;
                   cudaSupport = true;
+                  vulkanSupport = true; # unified CUDA+Vulkan build so llama-server can reach the Intel iGPU
                   cudaCapabilities = [ "12.0" ];
                   nvidia.acceptLicense = true;
                 };
