@@ -94,36 +94,116 @@
             # as aliases and just layers the param override on top, no conflict.
             # OpenCode then sees llama-swap/Tiel-Coder-35B-A3B:high/:low/:medium.
             aliases = [
-               "\${MODEL_ID}#high"
-               "\${MODEL_ID}#low"
-               "\${MODEL_ID}#medium"
+              "\${MODEL_ID}#high"
+              "\${MODEL_ID}#low"
+              "\${MODEL_ID}#medium"
             ];
 
             # ---- reasoning profiles (no reload) ----
             # setParamsByID sets request-body params based on which model ID
             # (or alias) the client requested. It auto-creates an alias for each
-            # key, so `Tiel-Coder-35B-A3B:high` selects reasoning_effort: high
+            # key, so `Tiel-Coder-35B-A3B#high` selects reasoning_effort: high
             # without reloading. Protected params like "model" can't be changed.
-            setParamsByID = {
-              "\${MODEL_ID}#medium" = {
-                chat_template_kwargs = {
-                  reasoning_effort = "medium";
+            #
+            # CRITICAL: this MUST live under `filters`. llama-swap only reads
+            # filters.setParamsByID (internal/config/load.go). Left at the model
+            # top level it is silently ignored — the schema validator can't catch
+            # it either — which is exactly why the variants showed "No reasoning".
+            # The aliases array below is redundant (setParamsByID auto-registers
+            # them), but harmless and kept for /v1/models clarity.
+            filters = {
+              setParamsByID = {
+                "\${MODEL_ID}#medium" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "medium";
+                  };
                 };
-              };
-              "\${MODEL_ID}#high" = {
-                chat_template_kwargs = {
-                  reasoning_effort = "high";
+                "\${MODEL_ID}#high" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "high";
+                  };
                 };
-              };
-              "\${MODEL_ID}#low" = {
-                chat_template_kwargs = {
-                  reasoning_effort = "low";
+                "\${MODEL_ID}#low" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "low";
+                  };
                 };
               };
             };
 
             # concurrencyLimit = 0; # 0 = internal default of 10
             # ttl = 0; # 0 = never auto-unload; -1 = use global globalTTL
+          };
+
+          # ---- MTP model (self-contained speculative decode) -------------------
+          # IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF is a SELF-CONTAINED
+          # MTP model: the MTP head is integrated into blk.40 inside the SAME 13 GB
+          # file (no separate --model-draft needed). It is a DIFFERENT model from
+          # Tiel (same 35B-A3B/qwen35moe family), so we run it as its own swappable
+          # model with --spec-type draft-mtp. Single-GPU = no prefill penalty
+          # (ggml #27428 only bites when the model is split across GPUs).
+          #
+          # Swap to it at runtime:
+          #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"mtp"}'
+          "Qwen3.6-35B-A3B-MTP" = {
+            name = "Qwen3.6 35B A3B MTP (NanoPlus)";
+            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --no-mmproj-offload --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type draft-mtp --spec-draft-n-max 8 --spec-draft-p-min 0.6 --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
+            checkEndpoint = "/health";
+            capabilities = {
+              "in" = [
+                "text"
+                "image"
+              ];
+              out = [ "text" ];
+              tools = true;
+              context = 262144;
+            };
+          };
+
+          # ---- tiny title model (fast session titles) --------------------------
+          # Qwen3-0.6B-Instruct (Q8_0 ~700MB). Runs on CPU — no iGPU/CUDA needed.
+          # Preloaded on startup so session titles are instant instead of loading
+          # the 13 GB main model every time.
+          "Qwen3-0.6B-Instruct" = {
+            name = "Qwen3 0.6B (titles)";
+            cmd = "${llama-server} --port \${PORT} -hf Qwen/Qwen3-0.6B-GGUF -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
+            checkEndpoint = "/health";
+            capabilities = {
+              "in" = [ "text" ];
+              out = [ "text" ];
+              tools = false;
+              context = 8192;
+            };
+          };
+        };
+
+        # ---- startup: preload the tiny title model, default profile = Tiel ----
+        hooks = {
+          on_startup = {
+            # preload keeps the title model resident so titles are instant; it does
+            # not make an incompatible model load. A ttl:0 model stays loaded.
+            preload = [
+              "Qwen3-0.6B-Instruct"
+            ];
+            # start every session on the main coding model (not the MTP model)
+            profile = "default";
+          };
+        };
+
+        # ---- profiles (runtime-selectable model-ID rewrites) ----------------
+        profiles = {
+          "default" = {
+            description = "Main coding model (Tiel-Coder 35B)";
+            pins = {
+              # "main" = the default/primary model
+              "main" = "Tiel-Coder-35B-A3B";
+            };
+          };
+          "mtp" = {
+            description = "Speculative (MTP) decode — faster generation";
+            pins = {
+              "main" = "Qwen3.6-35B-A3B-MTP";
+            };
           };
         };
 
