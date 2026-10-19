@@ -4,11 +4,30 @@
   lib,
   ...
 }:
+let
+  # Custom SDDM greeter that matches the Plasma lock screen: full-screen
+  # AURORA wallpaper + centered clock/avatar/password bar. Built from
+  # ./modules/sddm/aurora (a copy of the 6.8.0 breeze theme repointed at
+  # AURORA.jpg). The wallpaper is copied into the store so the sddm user can
+  # read it before login.
+  sddmAuroraTheme = pkgs.runCommand "sddm-aurora-theme" { } ''
+    mkdir -p $out/share/sddm/themes
+    cp -r ${./sddm/aurora} $out/share/sddm/themes/aurora
+  '';
+in
 {
   # Desktop Environment
   services.displayManager.sddm = {
     enable = true;
     wayland.enable = true;
+    theme = "aurora";
+  };
+
+  # Place the custom "aurora" SDDM theme into the store so SDDM can load it
+  # before login (needs to be world-readable; the bundled breeze wallpaper
+  # isn't the one we want).
+  environment.etc."share/sddm/themes/aurora" = {
+    source = "${sddmAuroraTheme}/share/sddm/themes/aurora";
   };
   services.desktopManager.plasma6.enable = true;
   services.displayManager.defaultSession = "plasma";
