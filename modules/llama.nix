@@ -76,8 +76,10 @@
           "Tiel-Coder-35B-A3B" = {
             name = "Tiel Coder 35B A3B (NanoPlus)";
 
-            # --hf-token "REPLACE_WITH_YOUR_HF_TOKEN"
-            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --mmproj-offload --mmproj-device Vulkan0 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --dry-multiplier 0 -rea on --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type none --host 0.0.0.0 -np 2 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
+            # model reported output was garbled, disabling  for now
+            # --mmproj-device Vulkan0
+            #
+            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --no-mmproj-offload  --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --dry-multiplier 0 -rea on --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type none --host 0.0.0.0 -np 2 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
 
             # Where llama-swap routes API requests. Defaults to
             # http://localhost:${PORT}; written here explicitly.
