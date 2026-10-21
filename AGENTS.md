@@ -11,9 +11,16 @@ once the configuration is verified and working, permanent "deploying" is done by
 ```bash
 cd /etc/nixos
 
+# build, do not apply
+nixos-rebuild build
+# add as boot option and activate live
 sudo nixos-rebuild switch
-# or, the not live version
+# activate live but do not add to boot
+sudo nixos-rebuild test
+# add to boot but do not activate live
 sudo nixos-rebuild boot
+
+# reboot lol
 sudo reboot now
 ```
 
