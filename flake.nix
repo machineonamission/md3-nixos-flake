@@ -7,8 +7,13 @@
 
   inputs = {
     # Nixpkgs channels
+    # TEMP PIN (2026-10-21): roll nixpkgs-unstable back to fe13242281, where glibc is
+    # 2.44-25 and nvidia-smi works (rc=0). The current tip 02c087f bumped glibc to
+    # 2.44-57, which segfaults nvidia-smi (rc=139) on MelDesktop3. Revert this url to
+    # "github:NixOS/nixpkgs/nixos-unstable" and run `nix flake update nixpkgs-unstable`
+    # once upstream fixes glibc.
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/fe13242281a67641c0102cdb1087f0ebe586c7df";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # OpenCode v2
     opencode.url = "github:anomalyco/opencode/v2.1.1";
