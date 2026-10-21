@@ -175,7 +175,7 @@
           
           "Qwen3.5-0.8B" = {
             name = "Qwen3.5-0.8B (titles)";
-            cmd = "${llama-server} --port \${PORT} -hf Qwen/Qwen3.5-0.8B -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
+            cmd = "${llama-server} --port \${PORT} -hf ggml-org/Qwen3.5-0.8B-GGUF -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
             checkEndpoint = "/health";
             capabilities = {
               "in" = [ "text" ];
