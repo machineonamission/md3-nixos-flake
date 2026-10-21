@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -6,7 +12,10 @@
   # Linux 7.1+ "NTFS Resurrection" kernel — required for BitLocker/NTFS HDD access
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  boot.kernelModules = [ "coretemp" "nct6683" ];
+  boot.kernelModules = [
+    "coretemp"
+    "nct6683"
+  ];
 
   # Limit build parallelism to prevent CPU explosion during nixos-rebuild switch
   # nix.settings.max-jobs = 4;

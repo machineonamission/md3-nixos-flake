@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   environment.localBinInPath = true;
 
   # Minimal system packages (truly needed system-wide tools)
@@ -44,5 +50,5 @@
   programs.kdeconnect.enable = true;
 
   #programs.adb.enable = true;
-  users.users.melody.extraGroups = ["adbusers"];
+  users.users.melody.extraGroups = [ "adbusers" ];
 }

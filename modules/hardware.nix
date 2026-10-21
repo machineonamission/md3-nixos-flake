@@ -1,4 +1,11 @@
-{ config, pkgs, lib, inputs, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
+{
   # Firmware and microcode
   hardware.enableRedistributableFirmware = true;
   services.fwupd.enable = true;

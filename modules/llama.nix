@@ -57,7 +57,7 @@
       enable = true;
       port = 9930; # llama-swap front door
       # startPort = 5800; # default; ${PORT} starts here -> llama-server
-      listenAddress = "0.0.0.0";  # allow other devices to access webui lol
+      listenAddress = "0.0.0.0"; # allow other devices to access webui lol
       settings = {
         # ---- global settings ------------------------------------------------
         # healthCheckTimeout is in SECONDS (schema min 15, default 120).

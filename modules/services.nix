@@ -1,4 +1,11 @@
-{ config, pkgs, lib, inputs, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
+{
   # OneDrive sync (uni files) — user-level systemd service
   services.onedrive.enable = true;
 
