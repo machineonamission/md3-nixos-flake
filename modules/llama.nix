@@ -172,13 +172,10 @@
             };
           };
 
-          # ---- tiny title model (fast session titles) --------------------------
-          # Qwen3-0.6B-Instruct (Q8_0 ~700MB). Runs on CPU — no iGPU/CUDA needed.
-          # Preloaded on startup so session titles are instant instead of loading
-          # the 13 GB main model every time.
-          "Qwen3-0.6B-Instruct" = {
-            name = "Qwen3 0.6B (titles)";
-            cmd = "${llama-server} --port \${PORT} -hf Qwen/Qwen3-0.6B-GGUF -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
+          
+          "Qwen3.5-0.8B" = {
+            name = "Qwen3.5-0.8B (titles)";
+            cmd = "${llama-server} --port \${PORT} -hf Qwen/Qwen3.5-0.8B -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
             checkEndpoint = "/health";
             capabilities = {
               "in" = [ "text" ];
@@ -195,7 +192,7 @@
             # preload keeps the title model resident so titles are instant; it does
             # not make an incompatible model load. A ttl:0 model stays loaded.
             preload = [
-              "Qwen3-0.6B-Instruct"
+              # "Qwen3-0.6B-Instruct"
             ];
             # start every session on the main coding model (not the MTP model)
             profile = "default";
