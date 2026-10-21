@@ -10,7 +10,7 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Linux 7.1+ "NTFS Resurrection" kernel — required for BitLocker/NTFS HDD access
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_7_2;  # temp pinned to 7.2 cause 7.3 breaks nvidia lmoa
 
   boot.kernelModules = [
     "coretemp"
