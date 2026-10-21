@@ -12,6 +12,7 @@
   # Linux 7.1+ "NTFS Resurrection" kernel — required for BitLocker/NTFS HDD access
   boot.kernelPackages = pkgs.linuxPackages_7_2;  # temp pinned to 7.2 cause 7.3 breaks nvidia lmoa
 
+  # makes more "sensors" appear, like live temps? openrgb and system monitor use it
   boot.kernelModules = [
     "coretemp"
     "nct6683"

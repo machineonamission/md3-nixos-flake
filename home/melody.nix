@@ -181,6 +181,8 @@
     alejandra
 
     kdePackages.kfind
+
+    pnpm
   ];
 
   programs.home-manager.enable = true;
