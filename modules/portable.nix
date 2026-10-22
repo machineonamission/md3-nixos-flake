@@ -34,7 +34,7 @@ let
     libunibreak
     lz4
     alsa-lib
-    alsa-lib.dev
+    pipewire
   ];
 
   # Full set for GUI portable apps: everything above plus the X11 / OpenGL /
