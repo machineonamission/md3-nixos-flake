@@ -35,6 +35,7 @@ let
     lz4
     alsa-lib
     pipewire
+    harfbuzz
   ];
 
   # Full set for GUI portable apps: everything above plus the X11 / OpenGL /
