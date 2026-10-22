@@ -52,6 +52,12 @@
     ];
   };
 
+  # --- System-wide environment variables ---
+  # Exported to every user and the global (PAM) environment on the host.
+  environment.variables = {
+    MEMINI_HOME = "personal/melody";
+  };
+
   # --- Portable apps (nix-ld + run-portable wrapper) ---
   # Fully-featured nix-ld: preload common libs (openssl, icu, fonts, etc.) for
   # every Nix app, plus a `run-portable` wrapper for arbitrary portable apps.
