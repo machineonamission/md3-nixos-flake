@@ -5,37 +5,120 @@
   ...
 }:
 let
-  # Core system libraries that portable (non-Nix) apps expect to find on a
-  # standard Linux distro but that NixOS keeps isolated in the store.
+  # ---------------------------------------------------------------------------
+  # Comprehensive library set for portable / non-Nix apps.
   #
-  # These are low-risk to preload globally AND cover the bulk of portable-app
-  # failures — the "openssl" pain point, unicode/globalization (.NET, browsers),
-  # fonts, and compression. Preloaded for every Nix app via nix-ld.
+  # Portable apps (AppImages, .NET apps, browsers, Steam games, etc.) were built
+  # against a standard distro and expect to find common shared libraries on a
+  # traditional library search path. NixOS keeps every library isolated in the
+  # store, so these apps fail with "error while loading shared libraries".
+  #
+  # Two mechanisms cover both families of portable apps:
+  #
+  #   * nix-ld (`programs.nix-ld.libraries`): AppImages and other ELF binaries
+  #     link against the Nix dynamic linker and read NIX_LD_LIBRARY_PATH, so a
+  #     comprehensive nix-ld set makes them find their system libs globally.
+  #
+  #   * run-portable (`portableLibs` + LD_LIBRARY_PATH): a wrapper for apps that
+  #     are launched outside the nix-ld runtime (e.g. double-clicked AppImages).
+  #
+  # This list is intentionally broad on purpose — it is cheap to preload and
+  # covers the X11 / OpenGL / Wayland / Vulkan / audio / font / crypto /
+  # compression stack that desktop apps commonly link.
+  #
+  # NOTE: package names are matched to THIS nixpkgs checkout. If you bump nixpkgs
+  # and a build fails on an unknown attribute, rename it (e.g. `libsoup` ->
+  # `libsoup_3`, `freetype2` -> `freetype`, `mesa-libgbm` -> `libgbm`).
+  # ---------------------------------------------------------------------------
   nixLdLibraries = with pkgs; [
+    # compression
     zlib
     zstd
-    stdenv.cc.cc
-    curl
-    openssl
-    attr
-    libssh
-    bzip2
-    libxml2
-    acl
-    libsodium
-    util-linux
     xz
-    systemd
-    icu
-    fontconfig
-    freetype
-    libpng
-    fribidi
-    libunibreak
+    bzip2
     lz4
+    libarchive
+    # C / C++ runtime
+    stdenv.cc.cc
+    # crypto / TLS
+    openssl
+    libssh
+    libsodium
+    libgcrypt
+    libgpg-error
+    p11-kit
+    nettle
+    gnutls
+    krb5
+    libidn2
+    # system / utilities
+    util-linux
+    acl
+    attr
+    libcap
+    systemd
+    curl
+    libxml2
+    # fonts / text shaping
+    freetype
+    fontconfig
+    harfbuzz
+    fribidi
+    libxkbcommon
+    # audio
     alsa-lib
     pipewire
-    harfbuzz
+    pulseaudio
+    libsndfile
+    # graphics / GPU (mesa split libgbm into its own package here)
+    mesa
+    libgbm
+    libdrm
+    libglvnd
+    # X11
+    libX11
+    libxcb
+    libXext
+    libXrender
+    libXcursor
+    libXrandr
+    libXi
+    libXinerama
+    libXfixes
+    libXdamage
+    libXcomposite
+    libXt
+    libice
+    libsm
+    # Wayland
+    wayland
+    wayland-protocols
+    # GTK / GLib stack
+    glib
+    gdk-pixbuf
+    pango
+    cairo
+    atk
+    libsoup_3
+    libepoxy
+    libthai
+    libdatrie
+    # image
+    libpng
+    lcms2
+    libexif
+    # misc
+    icu
+    libffi
+    expat
+  ];
+
+  # Extra GUI libraries that some desktop apps link but that are less common.
+  # (libxcb-render/libxcb-shm/libxkbcommon-x11/libxkbregistry are bundled inside
+  #  libxcb / libxkbcommon, which are already listed above.)
+  guiLibraries = with pkgs; [
+    libXmu
+    libXpm
   ];
 
   # Full set for GUI portable apps: everything above plus the X11 / OpenGL /
@@ -43,6 +126,7 @@ let
   portableLibraries =
     with pkgs;
     nixLdLibraries
+    ++ guiLibraries
     ++ [
       libx11
       libxext
@@ -62,7 +146,9 @@ let
   # One store path holding the 64-bit libs portable apps need.
   portableLibs = pkgs.buildEnv {
     name = "portable-compat-libs";
+    pathsToLink = [ "/lib" ];
     paths = map (p: lib.getLib p) portableLibraries;
+    ignoreCollisions = true;
   };
 
   # Run a portable / non-Nix app with the system library set preloaded.
@@ -86,14 +172,13 @@ let
 in
 {
   options.programs.portableApps.enable = lib.mkEnableOption ''
-    Enable nix-ld with an expanded library set and the run-portable wrapper.
+    Enable nix-ld with a comprehensive library set and the run-portable wrapper.
   '';
 
   config = lib.mkIf config.programs.portableApps.enable {
-    # --- Fully-featured nix-ld ---
-    # Preload the common libs for every Nix app so they just work without
-    # per-app LD_LIBRARY_PATH fiddling (this fixes the "openssl" pain point
-    # at the system level).
+    # --- Comprehensive nix-ld ---
+    # Preload the full library set for every Nix app so AppImages and other
+    # portable ELF binaries find their system libs globally via NIX_LD_LIBRARY_PATH.
     programs.nix-ld.enable = true;
     programs.nix-ld.libraries = nixLdLibraries;
 
