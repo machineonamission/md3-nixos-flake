@@ -33,6 +33,8 @@ let
     fribidi
     libunibreak
     lz4
+    alsa-lib
+    alsa-lib.dev
   ];
 
   # Full set for GUI portable apps: everything above plus the X11 / OpenGL /
