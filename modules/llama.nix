@@ -78,7 +78,170 @@
 
             # experiment: offload to igpu. igpu is observed to actually process, but the model always reports its "garbled".
             # --mmproj-offload --mmproj-device Vulkan0
-            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 1024 -fitc 131072 --no-mmproj-offload --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --repeat-last-n 0 -rea on --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type none --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup --dry-allowed-length 150 --dry-multiplier 0.4 --dry-base 1.75 --dry-penalty-last-n 2000 --repeat-last-n 0";
+            cmd =
+              "${llama-server} "
+              +
+                # llama-swap swaps the PORT macro for the model's runtime port
+                "--port \${PORT} "
+              +
+                # remote HF GGUF model (APEX-I NanoPlus quant)
+                "-hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF "
+              +
+                # image projection minimum tokens
+                "--image-min-tokens 1024 "
+              +
+                # context size (tokens)
+                "-c 262144 "
+              +
+                # batch size
+                "-b 2048 "
+              +
+                # unified batch
+                "-ub 512 "
+              +
+                # automatic load mode (GGUF load-alternative heuristics)
+                "--load-mode auto "
+              +
+                # context memory (MiB)
+                "-cram 16384 "
+              +
+                # context memory slots
+                "-cms 2048 "
+              +
+                # health poll interval (ms)
+                "--poll 50 "
+              +
+                # layers offloaded to GPU (auto = as many as fit)
+                "-ngl auto "
+              +
+                # GPU index
+                "-mg 0 "
+              +
+                # flash attention
+                "-fa on "
+              +
+                # KV cache optimization
+                "-kvo "
+              +
+                # repack weights for the target quant
+                "--repack "
+              +
+                # offload image projectors
+                "--op-offload "
+              +
+                # fan-in scale (mamba)
+                "-fit on "
+              +
+                # fan-in iterations
+                "-fitt 1024 "
+              +
+                # fan-in channels
+                "-fitc 131072 "
+              +
+                # do NOT offload projectors to the iGPU (Tiel keeps mmproj on CUDA)
+                "--no-mmproj-offload "
+              +
+                # sampling temperature
+                "--temp 0.6 "
+              +
+                # top-k sampling
+                "--top-k 20 "
+              +
+                # top-p (nucleus) sampling
+                "--top-p 0.95 "
+              +
+                # min-p sampling
+                "--min-p 0.0 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0 "
+              +
+                # reasoning effort on
+                "-rea on "
+              +
+                # jinja chat template
+                "--jinja "
+              +
+                # context key quantization
+                "-ctk q8_0 "
+              +
+                # context value quantization
+                "-ctv q8_0 "
+              +
+                # unified KV cache across modalities
+                "--kv-unified "
+              +
+                # speculative decoding type (none = pure greedy)
+                "--spec-type none "
+              +
+                # bind address
+                "--host 0.0.0.0 "
+              +
+                # max number of parallel requests
+                "-np 3 "
+              +
+                # continuous batching
+                "-cb "
+              +
+                # cache prompt embeddings
+                "--cache-prompt "
+              +
+                # cache idle model slots
+                "--cache-idle-slots "
+              +
+                # number of model slots
+                "--slots "
+              +
+                # idle unload timeout (ms)
+                "-to 3600 "
+              +
+                # HTTP worker threads (-1 = auto)
+                "--threads-http -1 "
+              +
+                # expose metrics endpoint
+                "--metrics "
+              +
+                # enable the web UI
+                "--webui "
+              +
+                # dense embedding model
+                "--embedding "
+              +
+                # special-token penalty scale
+                "-sps 0.1 "
+              +
+                # verbose logging
+                "-v "
+              +
+                # log verbosity level
+                "-lv 4 "
+              +
+                # colorize log output
+                "--log-colors on "
+              +
+                # prefix each log line with its source
+                "--log-prefix "
+              +
+                # include timestamps in logs
+                "--log-timestamps "
+              +
+                # skip the warmup prefill
+                "--no-warmup "
+              +
+                # max accepted length for speculative (dry) decoding
+                "--dry-allowed-length 150 "
+              +
+                # speculative decoding multiplier
+                "--dry-multiplier 0.4 "
+              +
+                # speculative decoding base
+                "--dry-base 1.75 "
+              +
+                # speculative decoding last-n penalty
+                "--dry-penalty-last-n 2000 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0";
 
             # Where llama-swap routes API requests. Defaults to
             # http://localhost:${PORT}; written here explicitly.
@@ -159,7 +322,161 @@
           #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"mtp"}'
           "Qwen3.6-35B-A3B-MTP" = {
             name = "Qwen3.6 35B A3B MTP (NanoPlus)";
-            cmd = "${llama-server} --port \${PORT} -hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF --image-min-tokens 1024 -c 262144 -b 2048 -ub 512 --load-mode auto -cram 16384 -cms 2048 --poll 50 -ngl auto -mg 0 -fa on -kvo --repack --op-offload -fit on -fitt 512 -fitc 131072 --mmproj-offload --mmproj-device Vulkan0 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05 --repeat-last-n 0 --jinja -ctk q8_0 -ctv q8_0 --kv-unified --spec-type draft-mtp --spec-draft-n-max 8 --spec-draft-p-min 0.6 --host 0.0.0.0 -np 3 -cb --cache-prompt --cache-idle-slots --slots -to 3600 --threads-http -1 --metrics --webui --embedding -sps 0.1 -v -lv 4 --log-colors on --log-prefix --log-timestamps --no-warmup";
+            cmd =
+              "${llama-server} "
+              +
+                # llama-swap swaps the PORT macro for the model's runtime port
+                "--port \${PORT} "
+              +
+                # remote HF GGUF model (APEX-I NanoPlus quant)
+                "-hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF "
+              +
+                # image projection minimum tokens
+                "--image-min-tokens 1024 "
+              +
+                # context size (tokens)
+                "-c 262144 "
+              +
+                # batch size
+                "-b 2048 "
+              +
+                # unified batch
+                "-ub 512 "
+              +
+                # automatic load mode (GGUF load-alternative heuristics)
+                "--load-mode auto "
+              +
+                # context memory (MiB)
+                "-cram 16384 "
+              +
+                # context memory slots
+                "-cms 2048 "
+              +
+                # health poll interval (ms)
+                "--poll 50 "
+              +
+                # layers offloaded to GPU (auto = as many as fit)
+                "-ngl auto "
+              +
+                # GPU index
+                "-mg 0 "
+              +
+                # flash attention
+                "-fa on "
+              +
+                # KV cache optimization
+                "-kvo "
+              +
+                # repack weights for the target quant
+                "--repack "
+              +
+                # offload image projectors
+                "--op-offload "
+              +
+                # fan-in scale (mamba)
+                "-fit on "
+              +
+                # fan-in iterations
+                "-fitt 512 "
+              +
+                # fan-in channels
+                "-fitc 131072 "
+              +
+                # offload projectors to the iGPU (this MTP model needs it)
+                "--mmproj-offload "
+              +
+                # iGPU device for the mmproj
+                "--mmproj-device Vulkan0 "
+              +
+                # sampling temperature
+                "--temp 0.6 "
+              +
+                # top-k sampling
+                "--top-k 20 "
+              +
+                # top-p (nucleus) sampling
+                "--top-p 0.95 "
+              +
+                # min-p sampling
+                "--min-p 0.05 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0 "
+              +
+                # jinja chat template
+                "--jinja "
+              +
+                # context key quantization
+                "-ctk q8_0 "
+              +
+                # context value quantization
+                "-ctv q8_0 "
+              +
+                # unified KV cache across modalities
+                "--kv-unified "
+              +
+                # speculative decoding type (self-contained MTP head)
+                "--spec-type draft-mtp "
+              +
+                # max draft tokens for speculative decoding
+                "--spec-draft-n-max 8 "
+              +
+                # minimum prob for a draft token to be accepted
+                "--spec-draft-p-min 0.6 "
+              +
+                # bind address
+                "--host 0.0.0.0 "
+              +
+                # max number of parallel requests
+                "-np 3 "
+              +
+                # continuous batching
+                "-cb "
+              +
+                # cache prompt embeddings
+                "--cache-prompt "
+              +
+                # cache idle model slots
+                "--cache-idle-slots "
+              +
+                # number of model slots
+                "--slots "
+              +
+                # idle unload timeout (ms)
+                "-to 3600 "
+              +
+                # HTTP worker threads (-1 = auto)
+                "--threads-http -1 "
+              +
+                # expose metrics endpoint
+                "--metrics "
+              +
+                # enable the web UI
+                "--webui "
+              +
+                # dense embedding model
+                "--embedding "
+              +
+                # special-token penalty scale
+                "-sps 0.1 "
+              +
+                # verbose logging
+                "-v "
+              +
+                # log verbosity level
+                "-lv 4 "
+              +
+                # colorize log output
+                "--log-colors on "
+              +
+                # prefix each log line with its source
+                "--log-prefix "
+              +
+                # include timestamps in logs
+                "--log-timestamps "
+              +
+                # skip the warmup prefill
+                "--no-warmup";
             checkEndpoint = "/health";
             capabilities = {
               "in" = [
@@ -172,10 +489,40 @@
             };
           };
 
-          
           "Qwen3.5-0.8B" = {
             name = "Qwen3.5-0.8B (titles)";
-            cmd = "${llama-server} --port \${PORT} -hf ggml-org/Qwen3.5-0.8B-GGUF -c 8192 -b 512 --temp 0.3 --jinja --host 0.0.0.0 -np 1 -to 120 --no-warmup";
+            cmd =
+              "${llama-server} "
+              +
+                # llama-swap swaps the PORT macro for the model's runtime port
+                "--port \${PORT} "
+              +
+                # remote HF GGUF model
+                "-hf ggml-org/Qwen3.5-0.8B-GGUF "
+              +
+                # context size (tokens)
+                "-c 8192 "
+              +
+                # batch size
+                "-b 512 "
+              +
+                # sampling temperature (low for stable title generation)
+                "--temp 0.3 "
+              +
+                # jinja chat template
+                "--jinja "
+              +
+                # bind address
+                "--host 0.0.0.0 "
+              +
+                # max number of parallel requests
+                "-np 1 "
+              +
+                # idle unload timeout (ms)
+                "-to 120 "
+              +
+                # skip the warmup prefill
+                "--no-warmup";
             checkEndpoint = "/health";
             capabilities = {
               "in" = [ "text" ];
