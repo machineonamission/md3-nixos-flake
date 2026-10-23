@@ -28,6 +28,11 @@
     android-tools
 
     kdePackages.xdg-desktop-portal-kde
+
+    # AppImages that shell out to KDE/glib CLI tools (- needs `gdbus`
+    # + `kwriteconfig6` for its KWin "effects" feature). kwriteconfig6 ships in
+    # the base system; gdbus lives in glib's -bin output.
+    glib-bin
   ];
 
   # Programs: git + other system programs

@@ -58,6 +58,16 @@
     MEMINI_HOME = "personal/melody";
   };
 
+  # --- Desktop / GUI session environment variables ---
+  # Inherited by GUI apps launched from the desktop (KDE, terminals started from
+  # the panel, double-clicked AppImages). SubControl bundles its own libvulkan
+  # loader but ships no Vulkan ICD driver, so wgpu can't create a surface
+  # ("Failed to create surface for any enabled backend"). Point VK_ICD at the
+  # Intel iGPU driver. See modules/portable.nix for the split-package note.
+  environment.sessionVariables = {
+    VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/intel_icd.x86_64.json";
+  };
+
   # --- Portable apps (nix-ld + run-portable wrapper) ---
   # Fully-featured nix-ld: preload common libs (openssl, icu, fonts, etc.) for
   # every Nix app, plus a `run-portable` wrapper for arbitrary portable apps.
