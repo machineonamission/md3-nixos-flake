@@ -2,6 +2,13 @@
 
 **Status:** Workaround applied (pin glibc back to `2.44-25`). Root cause is a glibc dynamic-linker regression.
 
+## 2026-10-23 update: still not fixed upstream
+- Current `nixpkgs/nixos-unstable` tip is commit `02c087f3fe673c9e317f206a627cb6b910336dbe`, which still
+  pins glibc **2.44-57** (57 `2.44-master.patch` commits). A `nix flake update` now rolls the lock from
+  `fe13242281` (2.44-25, working) → `02c087f` (2.44-57, crashing) and **reintroduces** the nvidia-smi
+  segfault. No upstream fix yet — keep the pin until glibc advances past `2.44-57` with the `dl_main`
+  regression reverted/fixed.
+
 ## Summary
 
 `nvidia-smi` (from NVIDIA driver package `615.78.08`, open driver, `branch=bleeding_edge`) crashes with a segmentation fault at process startup under NixOS **glibc `2.44-57`**. It works under **glibc `2.44-25`**.
