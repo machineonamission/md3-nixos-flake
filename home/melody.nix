@@ -183,6 +183,8 @@
     kdePackages.kfind
 
     pnpm
+
+    qbittorrent
   ];
 
   programs.home-manager.enable = true;
