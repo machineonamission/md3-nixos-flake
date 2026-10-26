@@ -75,6 +75,11 @@ let
     libgbm
     libdrm
     libglvnd
+    # Vulkan *loader* (libvulkan.so.1). The ICD drivers (mesa, nvidia) are above;
+    # the loader itself is a separate package that portable apps dlopen at runtime.
+    # - (AppImage) needs it or its overlay/renderer dies with
+    # "Vulkan loader error: libvulkan.so.1: cannot open shared object file".
+    vulkan-loader
     # X11
     libX11
     libxcb
