@@ -557,6 +557,225 @@
             };
           };
 
+          # abltierated model
+          "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = {
+            name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
+            cmd =
+              "${llama-server} "
+              +
+                # llama-swap swaps the PORT macro for the model's runtime port
+                "--port \${PORT} "
+              +
+                # remote HF GGUF model (APEX-I NanoPlus quant — SAME weights as above)
+                "-hf IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF "
+              +
+                # image projection minimum tokens
+                "--image-min-tokens 1024 "
+              +
+                # context size (tokens)
+                "-c 262144 "
+              +
+                # batch size
+                "-b 2048 "
+              +
+                # unified batch
+                "-ub 512 "
+              +
+                # automatic load mode (GGUF load-alternative heuristics)
+                "--load-mode auto "
+              +
+                # context memory (MiB)
+                "-cram 16384 "
+              +
+                # context memory slots
+                "-cms 2048 "
+              +
+                # health poll interval (ms)
+                "--poll 50 "
+              +
+                # layers offloaded to GPU (auto = as many as fit)
+                "-ngl auto "
+              +
+                # GPU index
+                "-mg 0 "
+              +
+                # flash attention
+                "-fa on "
+              +
+                # KV cache optimization
+                "-kvo "
+              +
+                # repack weights for the target quant
+                "--repack "
+              +
+                # offload image projectors
+                "--op-offload "
+              +
+                # fan-in scale (mamba)
+                "-fit on "
+              +
+                # fan-in iterations
+                "-fitt 1024 "
+              +
+                # fan-in channels
+                "-fitc 131072 "
+              +
+                # do NOT offload projectors to the iGPU (Tiel keeps mmproj on CUDA)
+                "--no-mmproj-offload "
+              +
+                # sampling temperature
+                "--temp 0.6 "
+              +
+                # top-k sampling
+                "--top-k 20 "
+              +
+                # top-p (nucleus) sampling
+                "--top-p 0.95 "
+              +
+                # min-p sampling
+                "--min-p 0.0 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0 "
+              +
+                # reasoning effort on
+                "-rea on "
+              +
+                # jinja chat template
+                "--jinja "
+              +
+                # context key quantization
+                "-ctk q8_0 "
+              +
+                # context value quantization
+                "-ctv q8_0 "
+              +
+                # unified KV cache across modalities
+                "--kv-unified "
+              +
+                # speculative decoding type (none = pure greedy)
+                "--spec-type none "
+              +
+                # bind address
+                "--host 0.0.0.0 "
+              +
+                # ONE parallel slot: the full 256k context belongs to the one
+                # active sequence; other chats queue and are served one at a time.
+                "-np 1 "
+              +
+                # continuous batching
+                "-cb "
+              +
+                # cache prompt embeddings
+                "--cache-prompt "
+              +
+                # cache idle model slots
+                "--cache-idle-slots "
+              +
+                # number of model slots
+                "--slots "
+              +
+                # idle unload timeout (ms)
+                "-to 3600 "
+              +
+                # HTTP worker threads (-1 = auto)
+                "--threads-http -1 "
+              +
+                # expose metrics endpoint
+                "--metrics "
+              +
+                # enable the web UI
+                "--webui "
+              +
+                # dense embedding model
+                "--embedding "
+              +
+                # special-token penalty scale
+                "-sps 0.1 "
+              +
+                # verbose logging
+                "-v "
+              +
+                # log verbosity level
+                "-lv 4 "
+              +
+                # colorize log output
+                "--log-colors on "
+              +
+                # prefix each log line with its source
+                "--log-prefix "
+              +
+                # include timestamps in logs
+                "--log-timestamps "
+              +
+                # skip the warmup prefill
+                "--no-warmup "
+              +
+                # max accepted length for speculative (dry) decoding
+                "--dry-allowed-length 150 "
+              +
+                # speculative decoding multiplier
+                "--dry-multiplier 0.4 "
+              +
+                # speculative decoding base
+                "--dry-base 1.75 "
+              +
+                # speculative decoding last-n penalty
+                "--dry-penalty-last-n 2000 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0";
+            checkEndpoint = "/health";
+
+            # Higher than the internal default of 10: llama-swap REJECTS (429)
+            # past this instead of queueing, so it is the ceiling on how many
+            # full-context chats can line up. They still generate one at a time
+            # (-np 1); this just lets more wait.
+            concurrencyLimit = 50;
+
+            # What modalities this model exposes (used in /v1/models).
+            # Fields left out are auto-filled from the upstream server.
+            capabilities = {
+              "in" = [
+                "text"
+                "image"
+              ];
+              out = [
+                "text"
+              ];
+              tools = true;
+              context = 262144;
+            };
+
+            # reasoning-effort variants behave exactly like the multi-slot model.
+            aliases = [
+              "\${MODEL_ID}#high"
+              "\${MODEL_ID}#low"
+              "\${MODEL_ID}#medium"
+            ];
+
+            # setParamsByID sets reasoning_effort per alias without reloading.
+            filters = {
+              setParamsByID = {
+                "\${MODEL_ID}#medium" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "medium";
+                  };
+                };
+                "\${MODEL_ID}#high" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "high";
+                  };
+                };
+                "\${MODEL_ID}#low" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "low";
+                  };
+                };
+              };
+            };
+          };
+
           # ---- MTP model (self-contained speculative decode) -------------------
           # IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF is a SELF-CONTAINED
           # MTP model: the MTP head is integrated into blk.40 inside the SAME 13 GB
