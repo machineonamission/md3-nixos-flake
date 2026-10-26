@@ -232,7 +232,7 @@
                 "--dry-allowed-length 150 "
               +
                 # speculative decoding multiplier
-                "--dry-multiplier 0.4 "
+                "--dry-multiplier 0.6 "
               +
                 # speculative decoding base
                 "--dry-base 1.75 "
@@ -496,7 +496,7 @@
                 "--dry-allowed-length 150 "
               +
                 # speculative decoding multiplier
-                "--dry-multiplier 0.4 "
+                "--dry-multiplier 0.6 "
               +
                 # speculative decoding base
                 "--dry-base 1.75 "
@@ -715,7 +715,7 @@
                 "--dry-allowed-length 150 "
               +
                 # speculative decoding multiplier
-                "--dry-multiplier 0.4 "
+                "--dry-multiplier 0.6 "
               +
                 # speculative decoding base
                 "--dry-base 1.75 "
