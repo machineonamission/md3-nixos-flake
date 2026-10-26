@@ -38,6 +38,7 @@
     # + `kwriteconfig6` for its KWin "effects" feature). kwriteconfig6 ships in
     # the base system; gdbus lives in glib's -bin output.
     glib
+    appimage-run
   ];
 
   # Programs: git + other system programs
