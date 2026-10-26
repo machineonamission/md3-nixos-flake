@@ -310,6 +310,253 @@
             # ttl = 0; # 0 = never auto-unload; -1 = use global globalTTL
           };
 
+          # ---- SINGLE-SLOT / FULL-CONTEXT MODE --------------------------------
+          # Same 35B-A3B weights as the model above, but run with ONE server
+          # slot so the ENTIRE 256k KV pool belongs to whichever single sequence
+          # is generating. Other chats queue in llama.cpp's internal ring buffer
+          # and are served one at a time (continuous batching still speeds up
+          # prompt prefill). This is the "as many full-context chats as you
+          # want, but slower" mode.
+          #
+          # HOW TO USE IT:
+          #   * Switch to it at runtime (no rebuild) via the OpenCode model
+          #     selector, or:
+          #       curl -X PUT localhost:9930/api/profiles/active \
+          #            -d '{"name":"full-context"}'
+          #   * The startup default is set by hooks.on_startup.profile below.
+          #
+          # THE ONE FLAG THAT MATTERS:
+          #   * -np 1  -> ONE parallel slot. This is what gives the single
+          #               sequence the full 256k context window.
+          #   * NOTE "--slots" does NOT do this — "--slots" only toggles the
+          #               /slots HTTP monitoring endpoint. The parallel-slot
+          #               count is -np/--parallel (see the model above uses -np 3).
+          #   * --kvu  -> unified KV pool, so with -np 1 the whole pool is one
+          #               slot (no per-slot split).
+          #
+          # WHY concurrencyLimit IS HIGHER HERE:
+          #   * llama-swap's per-model concurrencyLimit defaults to 10 and
+          #     REJECTS (HTTP 429) anything past it rather than queueing. Bumping
+          #     it lets more full-context chats line up. They still generate one
+          #     at a time (-np 1); this just raises the queue ceiling.
+          "Tiel-Coder-35B-A3B-HighContext" = {
+            name = "Tiel Coder 35B A3B (Single Slot — Full Context)";
+            cmd =
+              "${llama-server} "
+              +
+                # llama-swap swaps the PORT macro for the model's runtime port
+                "--port \${PORT} "
+              +
+                # remote HF GGUF model (APEX-I NanoPlus quant — SAME weights as above)
+                "-hf IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF "
+              +
+                # image projection minimum tokens
+                "--image-min-tokens 1024 "
+              +
+                # context size (tokens)
+                "-c 262144 "
+              +
+                # batch size
+                "-b 2048 "
+              +
+                # unified batch
+                "-ub 512 "
+              +
+                # automatic load mode (GGUF load-alternative heuristics)
+                "--load-mode auto "
+              +
+                # context memory (MiB)
+                "-cram 16384 "
+              +
+                # context memory slots
+                "-cms 2048 "
+              +
+                # health poll interval (ms)
+                "--poll 50 "
+              +
+                # layers offloaded to GPU (auto = as many as fit)
+                "-ngl auto "
+              +
+                # GPU index
+                "-mg 0 "
+              +
+                # flash attention
+                "-fa on "
+              +
+                # KV cache optimization
+                "-kvo "
+              +
+                # repack weights for the target quant
+                "--repack "
+              +
+                # offload image projectors
+                "--op-offload "
+              +
+                # fan-in scale (mamba)
+                "-fit on "
+              +
+                # fan-in iterations
+                "-fitt 1024 "
+              +
+                # fan-in channels
+                "-fitc 131072 "
+              +
+                # do NOT offload projectors to the iGPU (Tiel keeps mmproj on CUDA)
+                "--no-mmproj-offload "
+              +
+                # sampling temperature
+                "--temp 0.6 "
+              +
+                # top-k sampling
+                "--top-k 20 "
+              +
+                # top-p (nucleus) sampling
+                "--top-p 0.95 "
+              +
+                # min-p sampling
+                "--min-p 0.0 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0 "
+              +
+                # reasoning effort on
+                "-rea on "
+              +
+                # jinja chat template
+                "--jinja "
+              +
+                # context key quantization
+                "-ctk q8_0 "
+              +
+                # context value quantization
+                "-ctv q8_0 "
+              +
+                # unified KV cache across modalities
+                "--kv-unified "
+              +
+                # speculative decoding type (none = pure greedy)
+                "--spec-type none "
+              +
+                # bind address
+                "--host 0.0.0.0 "
+              +
+                # ONE parallel slot: the full 256k context belongs to the one
+                # active sequence; other chats queue and are served one at a time.
+                "-np 1 "
+              +
+                # continuous batching
+                "-cb "
+              +
+                # cache prompt embeddings
+                "--cache-prompt "
+              +
+                # cache idle model slots
+                "--cache-idle-slots "
+              +
+                # number of model slots
+                "--slots "
+              +
+                # idle unload timeout (ms)
+                "-to 3600 "
+              +
+                # HTTP worker threads (-1 = auto)
+                "--threads-http -1 "
+              +
+                # expose metrics endpoint
+                "--metrics "
+              +
+                # enable the web UI
+                "--webui "
+              +
+                # dense embedding model
+                "--embedding "
+              +
+                # special-token penalty scale
+                "-sps 0.1 "
+              +
+                # verbose logging
+                "-v "
+              +
+                # log verbosity level
+                "-lv 4 "
+              +
+                # colorize log output
+                "--log-colors on "
+              +
+                # prefix each log line with its source
+                "--log-prefix "
+              +
+                # include timestamps in logs
+                "--log-timestamps "
+              +
+                # skip the warmup prefill
+                "--no-warmup "
+              +
+                # max accepted length for speculative (dry) decoding
+                "--dry-allowed-length 150 "
+              +
+                # speculative decoding multiplier
+                "--dry-multiplier 0.4 "
+              +
+                # speculative decoding base
+                "--dry-base 1.75 "
+              +
+                # speculative decoding last-n penalty
+                "--dry-penalty-last-n 2000 "
+              +
+                # repetition penalty — repeat last N prompts (0 = disabled)
+                "--repeat-last-n 0";
+            checkEndpoint = "/health";
+
+            # Higher than the internal default of 10: llama-swap REJECTS (429)
+            # past this instead of queueing, so it is the ceiling on how many
+            # full-context chats can line up. They still generate one at a time
+            # (-np 1); this just lets more wait.
+            concurrencyLimit = 50;
+
+            # What modalities this model exposes (used in /v1/models).
+            # Fields left out are auto-filled from the upstream server.
+            capabilities = {
+              "in" = [
+                "text"
+                "image"
+              ];
+              out = [
+                "text"
+              ];
+              tools = true;
+              context = 262144;
+            };
+
+            # reasoning-effort variants behave exactly like the multi-slot model.
+            aliases = [
+              "\${MODEL_ID}#high"
+              "\${MODEL_ID}#low"
+              "\${MODEL_ID}#medium"
+            ];
+
+            # setParamsByID sets reasoning_effort per alias without reloading.
+            filters = {
+              setParamsByID = {
+                "\${MODEL_ID}#medium" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "medium";
+                  };
+                };
+                "\${MODEL_ID}#high" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "high";
+                  };
+                };
+                "\${MODEL_ID}#low" = {
+                  chat_template_kwargs = {
+                    reasoning_effort = "low";
+                  };
+                };
+              };
+            };
+          };
+
           # ---- MTP model (self-contained speculative decode) -------------------
           # IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF is a SELF-CONTAINED
           # MTP model: the MTP head is integrated into blk.40 inside the SAME 13 GB
@@ -518,12 +765,21 @@
                 # max number of parallel requests
                 "-np 1 "
               +
-                # idle unload timeout (ms)
-                "-to 120 "
+                # HTTP read/write timeout (s) — NOT an unload timeout. A tiny
+                # model finishing a short title in well under a second never
+                # trips this; 120s is just a safe ceiling.
+                "--timeout 120 "
               +
                 # skip the warmup prefill
                 "--no-warmup";
             checkEndpoint = "/health";
+
+            # Unload after 120s idle so the model does NOT stay resident and
+            # hog RAM. Next title reloads it (the load/unload cost we chose to
+            # eat). ttl = 0 would mean "never unload" (the current global
+            # default), which is exactly the RAM hog we want to avoid.
+            ttl = 120;
+
             capabilities = {
               "in" = [ "text" ];
               out = [ "text" ];
@@ -559,6 +815,15 @@
             description = "Speculative (MTP) decode — faster generation";
             pins = {
               "main" = "Qwen3.6-35B-A3B-MTP";
+            };
+          };
+          # Single slot = the full 256k context belongs to whichever one chat
+          # is generating; other chats queue and are served one at a time.
+          # Great for long-context work where each turn needs the whole window.
+          "full-context" = {
+            description = "Single slot, full 256k context (requests queue, slower)";
+            pins = {
+              "main" = "Tiel-Coder-35B-A3B-HighContext";
             };
           };
         };
