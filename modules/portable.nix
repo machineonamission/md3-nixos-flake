@@ -51,6 +51,8 @@ let
     gnutls
     krb5
     libidn2
+    # crypto helper lib (libcom_err.so.2) that bundled libkrb5/libgssapi_krb5 dlopen
+    e2fsprogs
     # system / utilities
     util-linux
     acl
@@ -108,6 +110,9 @@ let
     libepoxy
     libthai
     libdatrie
+    # app/ayatana indicator libs the bundled GUI dlopens at runtime
+    libappindicator-gtk3
+    libayatana-indicator
     # image
     libpng
     lcms2
