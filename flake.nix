@@ -12,7 +12,7 @@
     # 2.44-57, which segfaults nvidia-smi (rc=139) on MelDesktop3. Revert this url to
     # "github:NixOS/nixpkgs/nixos-unstable" and run `nix flake update nixpkgs-unstable`
     # once upstream fixes glibc.
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/fe13242281a67641c0102cdb1087f0ebe586c7df";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # OpenCode v2
