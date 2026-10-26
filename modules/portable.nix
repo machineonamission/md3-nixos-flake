@@ -151,6 +151,7 @@ let
       mesa
       wayland
       vulkan-loader
+      libwebp
     ];
 
   # One store path holding the 64-bit libs portable apps need.
