@@ -9,6 +9,7 @@
     ./opencode.nix
     ./llama.nix
     ./portable.nix
+    ./icon-fix.nix
     #./llama-presets.nix
   ];
 }
