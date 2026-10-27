@@ -966,6 +966,28 @@
                 # remote HF GGUF model
                 "-hf ggml-org/Qwen3.5-0.8B-GGUF "
               +
+                # FORCE CPU: 0 layers to GPU. The 35B model owns the whole
+                # GPU, so this tiny 0.8B title model must never touch VRAM.
+                # -ngl 0 keeps every weight in system RAM + CPU, so it can't
+                # compete with the big model for GPU and can't be gated behind
+                # it. CPU is also faster than routing a tiny model through the
+                # slow Intel iGPU (Vulkan0) — this is the "whichever is faster"
+                # pick, and it keeps VRAM 100% free for the main model.
+                #
+                # This is what makes it run independently: its own process and
+                # port, zero GPU dependency, so it neither waits on nor is
+                # waited on by any other model.
+                "-ngl 0 "
+              +
+                # Disable thinking/reasoning entirely. The Qwen chat template
+                # supports extended thinking, so by default llama.cpp enables
+                # it (that's the 500-token title drafts + reasoning-loop
+                # hangs). From server-context.cpp: enable_thinking =
+                # enable_reasoning != 0 && template_supports_thinking, and
+                # --reasoning off sets enable_reasoning = 0, forcing
+                # enable_thinking = false regardless of what the client sends.
+                "--reasoning off "
+              +
                 # context size (tokens)
                 "-c 8192 "
               +
