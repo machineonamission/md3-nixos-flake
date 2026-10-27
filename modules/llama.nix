@@ -200,7 +200,7 @@
             max_input_tokens = 262144;
             max_output_tokens = 32768;
           };
-          includeAliasesInList = true;
+          
 
           # reasoning-effort variants (no reload). OpenCode already generates its
           # own low/medium/high variants for this model, so these aliases are
@@ -243,6 +243,7 @@
         # 500 is fine for a big model that takes a while to load.
         healthCheckTimeout = 500;
         sendLoadingState = true; # inject loading updates into the reasoning field
+        includeAliasesInList = true;
 
         # ---- models ---------------------------------------------------------
         models = {
