@@ -16,7 +16,7 @@
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # OpenCode v2
-    opencode.url = "github:anomalyco/opencode/v2.2.0";
+    opencode.url = "github:anomalyco/opencode/v2.1.4";
     opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     # Home Manager
