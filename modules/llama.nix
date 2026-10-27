@@ -185,6 +185,7 @@
             hf_repo = hf;
             quant = "APEX-I-NanoPlus";
           };
+          includeAliasesInList = true;
 
           # reasoning-effort variants (no reload). OpenCode already generates its
           # own low/medium/high variants for this model, so these aliases are
