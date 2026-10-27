@@ -41,6 +41,15 @@
   # "PROFILES" (runtime model-ID rewrites, switched via the UI/API) are a
   #   SEPARATE feature from the reasoning-effort variants above. They only
   #   make sense once you have more than one model.
+  #
+  # MODEL-DATA PASSING TO OpenCode (opencode-models-discovery plugin):
+  #   The plugin reads meta.llamaswap.max_input_tokens / max_output_tokens
+  #   from /v1/models to set the Input / Output limits. llama-swap does NOT
+  #   emit these by default, so the plugin fell back to a bogus Output=32000
+  #   and Input=unknown. Putting them in each model's `metadata` map surfaces
+  #   them verbatim in meta.llamaswap (llama-swap only caps the keys
+  #   architecture/capabilities/supported_parameters/context_length/
+  #   context_window — max_input_tokens/max_output_tokens are NOT capped).
   services.llama-swap =
     let
       # Unified CUDA + Vulkan build. pkgs-llama was imported with cudaSupport
@@ -181,9 +190,15 @@
           # Arbitrary selector metadata, passed through verbatim into /v1/models.
           # Idiomatic llama-swap way to expose model identity that
           # autodiscovery can't infer from the weights alone.
+          #
+          # max_input_tokens / max_output_tokens drive OpenCode's Input/Output
+          # limits (see top-of-file note). 262144 == the 256k context window;
+          # 32768 is a sane generation ceiling for this model class.
           metadata = {
             hf_repo = hf;
             quant = "APEX-I-NanoPlus";
+            max_input_tokens = 262144;
+            max_output_tokens = 32768;
           };
           includeAliasesInList = true;
 
@@ -322,6 +337,8 @@
               hf_repo = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
               quant = "APEX-I-NanoPlus";
               spec_type = "draft-mtp";
+              max_input_tokens = 262144;
+              max_output_tokens = 32768;
             };
             capabilities = {
               "in" = [
@@ -357,6 +374,10 @@
             ]);
             checkEndpoint = "/health";
             ttl = 120;
+            metadata = {
+              max_input_tokens = 8192;
+              max_output_tokens = 2048;
+            };
             capabilities = {
               "in" = [ "text" ];
               out = [ "text" ];
