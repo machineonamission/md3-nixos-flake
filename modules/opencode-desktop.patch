@@ -1,0 +1,1 @@
+--- a/packages/desktop/script/build.ts+++ b/packages/desktop/script/build.ts@@ -11,3 +11,3 @@ -const cli = path.resolve(dir, "../cli/dist")+const cli = process.env.OPENCODE_CLI_DIST || path.resolve(dir, "../cli/dist") 
