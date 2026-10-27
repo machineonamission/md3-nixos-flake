@@ -207,6 +207,9 @@
               "\${MODEL_ID}:medium" = {
                 reasoning_effort = "medium";
               };
+              "\${MODEL_ID}" = {
+                reasoning_effort = "medium";
+              };
               "\${MODEL_ID}:low" = {
                 reasoning_effort = "low";
               };
