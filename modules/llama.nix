@@ -194,19 +194,19 @@
           # the top of the request body, so the nested `chat_template_kwargs`
           # form is silently ignored — that was the "No reasoning" bug.
           aliases = [
-            "\${MODEL_ID}#high"
-            "\${MODEL_ID}#low"
-            "\${MODEL_ID}#medium"
+            "\${MODEL_ID}:high"
+            "\${MODEL_ID}:low"
+            "\${MODEL_ID}:medium"
           ];
           filters = {
             setParamsByID = {
-              "\${MODEL_ID}#high" = {
+              "\${MODEL_ID}:high" = {
                 reasoning_effort = "high";
               };
-              "\${MODEL_ID}#medium" = {
+              "\${MODEL_ID}:medium" = {
                 reasoning_effort = "medium";
               };
-              "\${MODEL_ID}#low" = {
+              "\${MODEL_ID}:low" = {
                 reasoning_effort = "low";
               };
             };
