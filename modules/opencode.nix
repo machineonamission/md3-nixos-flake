@@ -21,7 +21,7 @@
   # This override forces `--ozone-platform=x11` to avoid the crash.
   environment.systemPackages = [
     inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode
-    (inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode-desktop.overrideAttrs (_old: {
+    (inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode-desktop/*.overrideAttrs (_old: {
       postInstall = ''
         # Fix NVIDIA+Wayland Vulkan crash by forcing X11 ozone platform
         wrapProgram "$out/bin/opencode-desktop" \
@@ -35,6 +35,6 @@
         cp ${lib.getExe inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode} \
           "$out/opt/opencode-desktop/resources/opencode-cli"
       '';
-    }))
+    })*/)
   ];
 }
