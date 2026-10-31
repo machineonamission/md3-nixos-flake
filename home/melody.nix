@@ -185,6 +185,8 @@
     pnpm
 
     qbittorrent
+
+    blender
     
   ];
 
