@@ -24,6 +24,13 @@
     allowUnfree = true;
     cudaCapabilities = [ "12.0" ];
     nvidia.acceptLicense = true;
+    # error: Refusing to evaluate package 'gtk+-2.24.33' in /nix/store/x85g4cmcjva68vjxn3wr5j3mabvx0jk4-source/pkgs/by-name/gt/gtk2/package.nix:155 because it has problems:
+    #     - broken: gtk2 will be removed because because its final release 2.24.33 happened in December 2020.
+    #     Packages using it should be migrated to gtk3 or gtk4 before NixOS 27.05.
+    #      (https://github.com/NixOS/nixpkgs/issues/410814)
+    problems.handlers = {
+      "gtk+".broken = "warn"; # or "ignore"
+    };
   };
 
   # --- Nix settings (substituters + trusted keys) ---

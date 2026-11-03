@@ -11,6 +11,7 @@
 
   # Services
   services.printing.enable = true;
+  services.flatpak.enable = true;
 
   # Audio (PipeWire replaces PulseAudio)
   services.pulseaudio.enable = false;

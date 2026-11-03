@@ -16,7 +16,7 @@
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # OpenCode v2
-    opencode.url = "github:anomalyco/opencode/v2.1.4";
+    opencode.url = "github:anomalyco/opencode/v2.1.4"; # wait until https://github.com/anomalyco/opencode/issues/59882 is fixed before updating past 2.2.0
     opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     # Home Manager
@@ -27,7 +27,7 @@
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
 
     # LLaMA C++ (CUDA build from source)
-    llama-cpp.url = "github:ggml-org/llama.cpp/v0.7.0";
+    llama-cpp.url = "github:ggml-org/llama.cpp/v0.8.0";
     llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 

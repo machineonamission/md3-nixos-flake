@@ -9,7 +9,7 @@
   home.homeDirectory = "/home/melody";
 
   # Spotify via flatpak (pkgs.spotify removed from nixpkgs 26.11)
-  services.flatpak.enable = true;
+  #services.flatpak.enable = true;
   # note, m2 may have hallucinated packageS plural?
   services.flatpak.packages = [
     {
@@ -239,6 +239,8 @@
 
   #  services.home-manager.autoUpgrade.enable = true;
   fonts.fontconfig.enable = true;
+
+
 
   # Home-manager version
   home.stateVersion = "26.05";
