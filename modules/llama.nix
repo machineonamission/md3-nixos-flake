@@ -144,10 +144,11 @@
             "--log-prefix"
             "--log-timestamps"
             "--no-warmup"
-            "--dry-allowed-length 30"
-            "--dry-multiplier 0.4"
-            "--dry-base 1.75"
-            "--dry-penalty-last-n 2000"
+            # if i need dry again it fucks with like, oh i want to type a patrh 5 times and dry is like nuh uh
+            # "--dry-allowed-length 30"
+            # "--dry-multiplier 0.4"
+            # "--dry-base 1.75"
+            # "--dry-penalty-last-n 2000"
             # "--repeat-penalty 1.0"
             # "--presence-penalty 0.0"
           ]
