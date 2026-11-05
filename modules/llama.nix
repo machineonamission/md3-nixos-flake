@@ -144,7 +144,7 @@
             "--log-prefix"
             "--log-timestamps"
             "--no-warmup"
-            "--dry-allowed-length 4"
+            "--dry-allowed-length 30"
             "--dry-multiplier 0.4"
             "--dry-base 1.75"
             "--dry-penalty-last-n 2000"
