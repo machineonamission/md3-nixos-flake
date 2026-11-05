@@ -148,8 +148,8 @@
             "--dry-multiplier 0.4"
             "--dry-base 1.75"
             "--dry-penalty-last-n 2000"
-            "--repetition-penalty 1.0"
-            "--presence-penalty 0.0"
+            # "--repeat-penalty 1.0"
+            # "--presence-penalty 0.0"
           ]
         );
 
