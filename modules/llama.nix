@@ -118,7 +118,7 @@
             "--temp 0.6"
             "--top-k 20"
             "--top-p 0.95"
-            "--min-p 0.0"
+            "--min-p 0.05"
             "--repeat-last-n 0"
             "-rea on"
             "--jinja"
@@ -144,11 +144,10 @@
             "--log-prefix"
             "--log-timestamps"
             "--no-warmup"
-            "--dry-allowed-length 150"
-            "--dry-multiplier 0.6"
+            "--dry-allowed-length 2"
+            "--dry-multiplier 0.8"
             "--dry-base 1.75"
             "--dry-penalty-last-n 2000"
-            "--repeat-last-n 0"
           ]
         );
 
@@ -200,7 +199,6 @@
             max_input_tokens = 262144;
             max_output_tokens = 32768;
           };
-          
 
           # reasoning-effort variants (no reload). OpenCode already generates its
           # own low/medium/high variants for this model, so these aliases are
@@ -312,7 +310,7 @@
               "-ctv q8_0"
               "--kv-unified"
               "--spec-type draft-mtp"
-              "--spec-draft-n-max 8"
+              "--spec-draft-n-max 2"
               "--spec-draft-p-min 0.6"
               "--host 0.0.0.0"
               "-np 3"
