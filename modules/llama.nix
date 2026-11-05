@@ -144,10 +144,12 @@
             "--log-prefix"
             "--log-timestamps"
             "--no-warmup"
-            "--dry-allowed-length 2"
-            "--dry-multiplier 0.8"
+            "--dry-allowed-length 4"
+            "--dry-multiplier 0.4"
             "--dry-base 1.75"
             "--dry-penalty-last-n 2000"
+            "--repetition_penalty 1.0"
+            "--presence_penalty 0.0"
           ]
         );
 
