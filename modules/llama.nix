@@ -204,7 +204,7 @@
             max_output_tokens = 32768;
           };
 
-          # VARIANTS (low/medium/high/notemplate) are declared in
+          # VARIANTS (low/medium/high/noreasoning) are declared in
           # opencode.jsonc (providers.llama-swap.models.<id>.variants).
           # We do NOT set aliases or setParamsByID here: includeAliasesInList
           # would emit aliased ids as SEPARATE /v1/models rows (splitting
