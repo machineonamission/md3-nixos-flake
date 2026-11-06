@@ -99,8 +99,9 @@
           mmproj =
             if offloadMMProj then
               [
+                "--mmproj-offload"
                 "--mmproj-device"
-                "CPU"
+                "Vulkan0"
               ]
             else
               [ "--no-mmproj-offload" ];
@@ -313,7 +314,6 @@
             name = "Tiel Coder 35B A3B (NanoPlus)";
             hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
             # np defaults to 3 (pipelined), concurrencyLimit to 0 (llama-swap default)
           };
 
@@ -321,7 +321,6 @@
             name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
             hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
             np = 1; # single slot = full 256k context
             concurrencyLimit = 50;
           };
@@ -336,7 +335,6 @@
             hf = "IsValorum/Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
             quant = "VAL-APEX-I-NanoPlus-V3";
             image = true;
-            offloadMMProj = true;
           };
 
           "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
@@ -344,7 +342,6 @@
             hf = "IsValorum/Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
             quant = "VAL-APEX-I-NanoPlus-V3";
             image = true;
-            offloadMMProj = true;
           };
 
           # ---- APEX-I-NanoPlus collection: text models ----------------------
@@ -372,21 +369,18 @@
             name = "Ornith 1.5 35B A3B (NanoPlus)";
             hf = "IsValorum/Ornith-1.5-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
           };
 
           "MiniCPM-V-4.7-35B-A3B" = model {
             name = "MiniCPM-V 4.7 35B A3B (NanoPlus)";
             hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
           };
 
           "MiniCPM-V-4.7-35B-A3B-Abliterated" = model {
             name = "MiniCPM-V 4.7 35B A3B (Abliterated)";
             hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-Abliterated-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
           };
 
           "T-Search" = model {
@@ -394,7 +388,6 @@
             hf = "IsValorum/T-Search-APEX-I-NanoPlus-GGUF";
             # multimodal search model (has mmproj + `multimodal` tag)
             image = true;
-            offloadMMProj = true;
           };
 
           # ---- APEX-I-NanoPlus-V2.1 collection ------------------------------
@@ -403,7 +396,6 @@
             hf = "IsValorum/Sage-A1.5-APEX-I-NanoPlus-V2.1-GGUF";
             quant = "APEX-I-NanoPlus-V2.1";
             image = true;
-            offloadMMProj = true;
           };
 
           "Flint" = model {
@@ -435,7 +427,6 @@
             name = "Occamy 1.0 (NanoPlus)";
             hf = "IsValorum/Occamy-1.0-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
             # MTP uses a SEPARATE standalone draft head in the same repo,
             # targeted with `repo:file`. Occamy documents the knob as
             # --spec-draft-n-max (vs KAT's --draft-max alias).
@@ -459,7 +450,6 @@
             name = "Qwen3.6 35B A3B MTP (NanoPlus)";
             hf = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
             image = true;
-            offloadMMProj = true;
             fitt = 512; # higher fan-in for the self-contained MTP head
             # SELF-CONTAINED MTP: the MTP head lives inside blk.40 of the SAME
             # file (no --draft-model). Same 35B-A3B/qwen35moe family as Tiel, so
