@@ -68,21 +68,32 @@
       };
       llama-server = lib.getExe' llama-cpp "llama-server";
 
-      # Shared llama-server command line for the 35B-A3B family. ~40 flags are
-      # identical across all three big models; only four things differ, so they
-      # become arguments instead of being copied three times:
+      # baseCmd — the shared command line for the APEX-I-NanoPlus family,
+      # written ONCE. ~40 flags are identical across every model; only four
+      # knobs differ, so they become arguments instead of being copied per
+      # model:
       #   hf              — remote HF GGUF repo (the weights)
-      #   np              — parallel slots (3 = pipelined, 1 = full 256k context)
+      #   ctx             — context window in tokens (262144 default; LFM2.5
+      #                     uses 131072)
+      #   np              — parallel slots (3 = pipelined, 1 = full context)
       #   fitt            — fan-in iterations (MTP model uses 512)
-      #   offloadMMProj   — true = offload mmproj to the Intel iGPU (Vulkan0)
-      modelCmd =
+      #   offloadMMProj   — true = offload the mmproj to the Intel iGPU (Vulkan0)
+      #   extra           — raw flag list, appended LAST so per-model flags
+      #                     live next to the model that needs them
+      #
+      # Returns a LIST of flags so callers can concatenate before joining.
+      baseCmd =
         {
           hf,
+          ctx ? 262144,
           np ? 3,
           fitt ? 1024,
           offloadMMProj ? false,
+          extra ? [ ],
         }:
         let
+          # Image models offload only the small mmproj to the iGPU (Vulkan0);
+          # the heavy weights stay on CUDA. Text models get --no-mmproj-offload.
           mmproj =
             if offloadMMProj then
               [
@@ -93,116 +104,182 @@
             else
               [ "--no-mmproj-offload" ];
         in
-        lib.concatStringsSep " " (
-          [
-            "${llama-server}"
-            "--port \${PORT}"
-            "-hf ${hf}"
-            "--image-min-tokens 1024"
-            "-c 262144"
-            "-b 2048"
-            "-ub 512"
-            "--load-mode auto"
-            "-cram 16384"
-            "-cms 2048"
-            "--poll 50"
-            "-ngl auto"
-            "-mg 0"
-            "-fa on"
-            "-kvo"
-            "--repack"
-            "--op-offload"
-            "-fit on"
-            "-fitt ${toString fitt}"
-          ]
-          ++ mmproj
-          ++ [
-            "--temp 0.6"
-            "--top-k 20"
-            "--top-p 0.95"
-            "--min-p 0.05"
-            "--repeat-last-n 0"
-            "-rea on"
-            "--jinja"
-            "-ctk q8_0"
-            "-ctv q8_0"
-            "--spec-type none"
-            "--host 0.0.0.0"
-            "-np ${toString np}"
-            "-cb"
-            "--cache-prompt"
-            "--cache-idle-slots"
-            "--slots"
-            "-to 3600"
-            "--threads-http -1"
-            "--metrics"
-            "--webui"
-            "--embedding"
-            "-sps 0.1"
-            "-v"
-            "-lv 4"
-            "--log-colors on"
-            "--log-prefix"
-            "--log-timestamps"
-            "--no-warmup"
-            # if i need dry again it fucks with like, oh i want to type a patrh 5 times and dry is like nuh uh
-            # "--dry-allowed-length 30"
-            # "--dry-multiplier 0.4"
-            # "--dry-base 1.75"
-            # "--dry-penalty-last-n 2000"
-            # "--repeat-penalty 1.0"
-            # "--presence-penalty 0.0"
-          ]
+        [
+          "${llama-server}"
+          "--port \${PORT}"
+          "-hf ${hf}"
+          "--image-min-tokens 1024"
+          "-c ${toString ctx}"
+          "-b 2048"
+          "-ub 512"
+          "--load-mode auto"
+          "-cram 16384"
+          "-cms 2048"
+          "--poll 50"
+          "-ngl auto"
+          "-mg 0"
+          "-fa on"
+          "-kvo"
+          "--repack"
+          "--op-offload"
+          "-fit on"
+          "-fitt ${toString fitt}"
+        ]
+        ++ mmproj
+        ++ [
+          "--temp 0.6"
+          "--top-k 20"
+          "--top-p 0.95"
+          "--min-p 0.05"
+          "--repeat-last-n 0"
+          "-rea on"
+          "--jinja"
+          "-ctk q8_0"
+          "-ctv q8_0"
+          "--spec-type none"
+          "--host 0.0.0.0"
+          "-np ${toString np}"
+          "-cb"
+          "--cache-prompt"
+          "--cache-idle-slots"
+          "--slots"
+          "-to 3600"
+          "--threads-http -1"
+          "--metrics"
+          "--webui"
+          "--embedding"
+          "-sps 0.1"
+          "-v"
+          "-lv 4"
+          "--log-colors on"
+          "--log-prefix"
+          "--log-timestamps"
+          "--no-warmup"
+          # if i need dry again it fucks with like, oh i want to type a path 5 times and dry is like nuh uh
+          # "--dry-allowed-length 30"
+          # "--dry-multiplier 0.4"
+          # "--dry-base 1.75"
+          # "--dry-penalty-last-n 2000"
+          # "--repeat-penalty 1.0"
+          # "--presence-penalty 0.0"
+        ]
+        ++ extra;
+
+      # mtpExtra — speculative decode (MTP) with a SEPARATE draft head:
+      # Occamy-1.0 and KAT-Coder-V2.5-Dev ship a standalone mtp-*.gguf in the
+      # SAME repo, so --draft-model targets it with `repo:file` — llama.cpp's
+      # HF file targeting, the same syntax `--hf` uses. Returns the flag list
+      # for `model` to append.
+      #   repo            — the model's HF repo (holds the draft head too)
+      #   file            — the standalone draft .gguf filename
+      #   specDraftNMax   — Occamy's documented knob (max draft tokens)
+      #   draftMax        — KAT's documented alias for the same knob
+      mtpExtra =
+        {
+          repo,
+          file,
+          specDraftNMax ? 2,
+          draftMax ? null,
+        }:
+        [
+          "--spec-type"
+          "draft-mtp"
+          "--draft-model"
+          "${repo}:${file}"
+        ]
+        ++ (
+          if draftMax != null then
+            [
+              "--draft-max"
+              (toString draftMax)
+            ]
+          else
+            [ ]
+        )
+        ++ (
+          if specDraftNMax != null then
+            [
+              "--spec-draft-n-max"
+              (toString specDraftNMax)
+            ]
+          else
+            [ ]
         );
 
-      # Builds a full llama-swap model for the 35B-A3B family. The three big
-      # models share the command line above PLUS identical reasoning-effort
-      # variants, so only the display name, parallel slots (-np), and the
-      # concurrency ceiling differ — those are the only arguments.
-      model35B =
+      # model — builds a full llama-swap model entry. Wraps baseCmd (the shared
+      # command) with the per-model capabilities + metadata. Every field that
+      # varies across the collection is an argument, so adding a model is just a
+      # literal with the knobs it needs — no flag copying.
+      #   name              — human-readable name shown in /v1/models
+      #   hf                — remote HF GGUF repo (the weights)
+      #   image             — true = multimodal (has an mmproj); sets capabilities.in
+      #   ctx               — context window in tokens (262144 default)
+      #   quant             — quant label surfaced in metadata (NanoPlus / -V2.1)
+      #   offloadMMProj     — true = offload mmproj to the Intel iGPU (Vulkan0)
+      #   np                — parallel slots (3 = pipelined, 1 = full context)
+      #   concurrencyLimit  — 0 = llama-swap default (10)
+      #   fitt              — fan-in iterations (MTP model uses 512)
+      #   extra             — raw flag list appended to the base command
+      #   mtp               — optional fn repo -> flags for a SEPARATE MTP draft head
+      model =
         {
-          name, # human-readable name shown in /v1/models
-          hf, # remote HF GGUF repo (the weights)
-          np ? 3, # parallel slots: 3 = pipelined, 1 = full 256k
-          concurrencyLimit ? 0, # 0 = llama-swap default (10)
-          fitt ? 1024, # fan-in iterations
-          offloadMMProj ? false, # true = offload mmproj to the Intel iGPU
+          name,
+          hf,
+          image ? false,
+          ctx ? 262144,
+          quant ? "APEX-I-NanoPlus",
+          offloadMMProj ? false,
+          np ? 3,
+          concurrencyLimit ? 0,
+          fitt ? 1024,
+          extra ? [ ],
+          mtp ? null,
         }:
         {
           inherit name;
-          cmd = modelCmd {
-            inherit
-              hf
-              np
-              fitt
-              offloadMMProj
-              ;
-          };
+          # base command ++ separate-draft MTP flags (if any) ++ extra overrides
+          cmd = lib.concatStringsSep " " (
+            (baseCmd {
+              inherit
+                hf
+                ctx
+                np
+                fitt
+                offloadMMProj
+                extra
+                ;
+            })
+            ++ (if mtp != null then mtp hf else [ ])
+          );
           checkEndpoint = "/health";
 
           capabilities = {
-            "in" = [
-              "text"
-              "image"
-            ];
+            "in" =
+              if image then
+                [
+                  "text"
+                  "image"
+                ]
+              else
+                [ "text" ];
             out = [ "text" ];
             tools = true;
-            context = 262144;
+            context = ctx;
           };
 
           # Arbitrary selector metadata, passed through verbatim into /v1/models.
           # Idiomatic llama-swap way to expose model identity that
           # autodiscovery can't infer from the weights alone.
           #
-          # max_input_tokens / max_output_tokens drive OpenCode's Input/Output
-          # limits (see top-of-file note). 262144 == the 256k context window;
-          # 32768 is a sane generation ceiling for this model class.
+          # max_input_tokens == the context window; max_output_tokens drives
+          # OpenCode's Output limit (32768 here).
           metadata = {
             hf_repo = hf;
-            quant = "APEX-I-NanoPlus";
-            max_input_tokens = 262144;
+            inherit quant;
+            max_input_tokens = ctx;
             max_output_tokens = 32768;
-          };
+          }
+          // lib.optionalAttrs (concurrencyLimit != 0) { inherit concurrencyLimit; };
 
           # VARIANTS (low/medium/high/noreasoning) are declared in
           # opencode.jsonc (providers.llama-swap.models.<id>.variants).
@@ -229,17 +306,122 @@
 
         # ---- models ---------------------------------------------------------
         models = {
-          "Tiel-Coder-35B-A3B" = model35B {
+          # ---- main coding family (35B-A3B, image) --------------------------
+          "Tiel-Coder-35B-A3B" = model {
             name = "Tiel Coder 35B A3B (NanoPlus)";
             hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
             # np defaults to 3 (pipelined), concurrencyLimit to 0 (llama-swap default)
           };
 
-          "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model35B {
+          "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model {
             name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
             hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
-            np = 1;
+            image = true;
+            offloadMMProj = true;
+            np = 1; # single slot = full 256k context
             concurrencyLimit = 50;
+          };
+
+          # ---- APEX-I-NanoPlus collection: text models ----------------------
+          "LFM2.5-24B-A2B" = model {
+            name = "LFM2.5 24B A2B (NanoPlus)";
+            hf = "IsValorum/LFM2.5-24B-A2B-APEX-I-NanoPlus-GGUF";
+            # text-only (no mmproj); smaller 128k context window
+            ctx = 131072;
+          };
+
+          "Qwen3.8-Flash-Coder" = model {
+            name = "Qwen3.8 Flash Coder (NanoPlus)";
+            hf = "IsValorum/Qwen3.8-Flash-Coder-APEX-I-NanoPlus-GGUF";
+            # text-only, qwen4exp architecture
+          };
+
+          "Thomson-1.0-Small" = model {
+            name = "Thomson 1.0 Small (NanoPlus)";
+            hf = "IsValorum/Thomson-1.0-Small-APEX-I-NanoPlus-GGUF";
+            # text-only
+          };
+
+          # ---- APEX-I-NanoPlus collection: image models ---------------------
+          "Ornith-1.5-35B-A3B" = model {
+            name = "Ornith 1.5 35B A3B (NanoPlus)";
+            hf = "IsValorum/Ornith-1.5-35B-A3B-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
+          };
+
+          "MiniCPM-V-4.7-35B-A3B" = model {
+            name = "MiniCPM-V 4.7 35B A3B (NanoPlus)";
+            hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
+          };
+
+          "MiniCPM-V-4.7-35B-A3B-Abliterated" = model {
+            name = "MiniCPM-V 4.7 35B A3B (Abliterated)";
+            hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-Abliterated-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
+          };
+
+          "T-Search" = model {
+            name = "T-Search (NanoPlus)";
+            hf = "IsValorum/T-Search-APEX-I-NanoPlus-GGUF";
+            # multimodal search model (has mmproj + `multimodal` tag)
+            image = true;
+            offloadMMProj = true;
+          };
+
+          # ---- APEX-I-NanoPlus-V2.1 collection ------------------------------
+          "Sage-A1.5" = model {
+            name = "Sage-A1.5 (V2.1)";
+            hf = "IsValorum/Sage-A1.5-APEX-I-NanoPlus-V2.1-GGUF";
+            quant = "APEX-I-NanoPlus-V2.1";
+            image = true;
+            offloadMMProj = true;
+          };
+
+          "Flint" = model {
+            name = "Flint (V2.1)";
+            hf = "IsValorum/Flint-APEX-I-NanoPlus-V2.1-GGUF";
+            quant = "APEX-I-NanoPlus-V2.1";
+            # text-only
+          };
+
+          # ---- APEX-I-NanoPlus-V2.1: MTP with a SEPARATE draft head ---------
+          "KAT-Coder-V2.5-Dev" = model {
+            name = "KAT-Coder V2.5 Dev (V2.1)";
+            hf = "IsValorum/KAT-Coder-V2.5-Dev-APEX-I-NanoPlus-V2.1-GGUF";
+            quant = "APEX-I-NanoPlus-V2.1";
+            # text-only; MTP uses a SEPARATE standalone draft head in the same
+            # repo, targeted with `repo:file` (llama.cpp HF file targeting).
+            # KAT documents the knob as --draft-max (vs Occamy's --spec-draft-n-max).
+            mtp =
+              hf:
+              mtpExtra {
+                repo = hf;
+                file = "mtp-KAT-Coder-V2.5-Dev-Q4_0.gguf";
+                draftMax = 2;
+              };
+          };
+
+          # ---- APEX-I-NanoPlus: MTP with a SEPARATE draft head --------------
+          "Occamy-1.0" = model {
+            name = "Occamy 1.0 (NanoPlus)";
+            hf = "IsValorum/Occamy-1.0-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
+            # MTP uses a SEPARATE standalone draft head in the same repo,
+            # targeted with `repo:file`. Occamy documents the knob as
+            # --spec-draft-n-max (vs KAT's --draft-max alias).
+            mtp =
+              hf:
+              mtpExtra {
+                repo = hf;
+                file = "occamy-1.0-mtp-Q4_K_M.gguf";
+              };
           };
 
           # ---- MTP model (self-contained speculative decode) ----------------
@@ -250,77 +432,25 @@
           # reasoning_effort, MTP spec instead of `none`, and it offloads the
           # mmproj to the iGPU. Swap to it at runtime:
           #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"mtp"}'
-          "Qwen3.6-35B-A3B-MTP" = {
+          "Qwen3.6-35B-A3B-MTP" = model {
             name = "Qwen3.6 35B A3B MTP (NanoPlus)";
-            cmd = lib.concatStringsSep " " ([
-              "${llama-server}"
-              "--port \${PORT}"
-              "-hf IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF"
-              "--image-min-tokens 1024"
-              "-c 262144"
-              "-b 2048"
-              "-ub 512"
-              "--load-mode auto"
-              "-cram 16384"
-              "-cms 2048"
-              "--poll 50"
-              "-ngl auto"
-              "-mg 0"
-              "-fa on"
-              "-kvo"
-              "--repack"
-              "--op-offload"
-              "-fit on"
-              "-fitt 512"
-              "--mmproj-offload"
-              "--mmproj-device Vulkan0"
-              "--temp 0.6"
-              "--top-k 20"
-              "--top-p 0.95"
-              "--min-p 0.05"
-              "--repeat-last-n 0"
-              "--jinja"
-              "-ctk q8_0"
-              "-ctv q8_0"
-              "--spec-type draft-mtp"
-              "--spec-draft-n-max 2"
-              "--spec-draft-p-min 0.6"
-              "--host 0.0.0.0"
-              "-np 3"
-              "-cb"
-              "--cache-prompt"
-              "--cache-idle-slots"
-              "--slots"
-              "-to 3600"
-              "--threads-http -1"
-              "--metrics"
-              "--webui"
-              "--embedding"
-              "-sps 0.1"
-              "-v"
-              "-lv 4"
-              "--log-colors on"
-              "--log-prefix"
-              "--log-timestamps"
-              "--no-warmup"
-            ]);
-            checkEndpoint = "/health";
-            metadata = {
-              hf_repo = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
-              quant = "APEX-I-NanoPlus";
-              spec_type = "draft-mtp";
-              max_input_tokens = 262144;
-              max_output_tokens = 32768;
-            };
-            capabilities = {
-              "in" = [
-                "text"
-                "image"
-              ];
-              out = [ "text" ];
-              tools = true;
-              context = 262144;
-            };
+            hf = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
+            image = true;
+            offloadMMProj = true;
+            fitt = 512; # higher fan-in for the self-contained MTP head
+            # SELF-CONTAINED MTP: the MTP head lives inside blk.40 of the SAME
+            # file (no --draft-model). Same 35B-A3B/qwen35moe family as Tiel, so
+            # it reuses baseCmd; only the spec flags differ from `--spec-type none`.
+            # Swap to it at runtime:
+            #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"mtp"}'
+            extra = [
+              "--spec-type"
+              "draft-mtp"
+              "--spec-draft-n-max"
+              "2"
+              "--spec-draft-p-min"
+              "0.6"
+            ];
           };
 
           # Tiny model for title generation. Unloaded after 120s idle so it
