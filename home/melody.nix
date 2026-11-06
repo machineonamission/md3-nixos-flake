@@ -128,6 +128,7 @@
     nixfmt-tree
 
     vscode
+    zed-editor
 
     # Backup for weird dev stuff that needs the FHS sandbox (native ext binaries).
     # Renamed so its desktop entry + URL-handler scheme don't collide with `vscode`.
