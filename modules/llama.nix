@@ -28,15 +28,17 @@
   #   types at `nix build` time.
   #
   # REASONING-VARIANT WARNINGS (this answers "am I doing it wrong"):
-  #   * OpenCode's model selector generates its OWN low/medium/high variants
-  #     automatically for any llama-swap model (via the openai-compatible
-  #     protocol). You do NOT need `aliases` / `setParamsByID` for that.
-  #   * `setParamsByID` is only useful for non-OpenCode API clients that
-  #     request `ModelID#high` directly. When used, reasoning_effort MUST be
-  #     top-level — llama.cpp reads it at the top of the request body
-  #     (server-common.cpp: `if (body.contains("reasoning_effort"))`). The
-  #     nested `chat_template_kwargs` form is silently ignored, which was the
-  #     "No reasoning" bug.
+  #   * OpenCode only auto-generates low/medium/high variants when the
+  #     discovery format advertises `reasoning_options`. The llama-swap format
+  #     does NOT populate that, so we do NOT rely on auto-generation.
+  #   * Do NOT use `aliases` / `setParamsByID` here: includeAliasesInList would
+  #     emit aliased ids as SEPARATE /v1/models rows, splitting the model into
+  #     several top-level entries in OpenCode. Variants are declared explicitly
+  #     in opencode.jsonc (providers.llama-swap.models.<id>.variants).
+  #   * The request-body reasoning_effort that OpenCode's variant overlay sends
+  #     is read at the top of the body by llama.cpp
+  #     (server-common.cpp: `if (body.contains("reasoning_effort"))`); the
+  #     nested `chat_template_kwargs` form is silently ignored ("No reasoning" bug).
   #
   # "PROFILES" (runtime model-ID rewrites, switched via the UI/API) are a
   #   SEPARATE feature from the reasoning-effort variants above. They only
@@ -124,7 +126,6 @@
             "--jinja"
             "-ctk q8_0"
             "-ctv q8_0"
-            "--kv-unified"
             "--spec-type none"
             "--host 0.0.0.0"
             "-np ${toString np}"
@@ -203,34 +204,14 @@
             max_output_tokens = 32768;
           };
 
-          # reasoning-effort variants (no reload). OpenCode already generates its
-          # own low/medium/high variants for this model, so these aliases are
-          # ONLY for API clients that request `ModelID#high` directly.
-          #
-          # CRITICAL: reasoning_effort MUST be top-level. llama.cpp reads it at
-          # the top of the request body, so the nested `chat_template_kwargs`
-          # form is silently ignored — that was the "No reasoning" bug.
-          aliases = [
-            "\${MODEL_ID}:high"
-            "\${MODEL_ID}:low"
-            "\${MODEL_ID}:medium"
-          ];
-          filters = {
-            setParamsByID = {
-              "\${MODEL_ID}:high" = {
-                reasoning_effort = "high";
-              };
-              "\${MODEL_ID}:medium" = {
-                reasoning_effort = "medium";
-              };
-              "\${MODEL_ID}" = {
-                reasoning_effort = "medium";
-              };
-              "\${MODEL_ID}:low" = {
-                reasoning_effort = "low";
-              };
-            };
-          };
+          # VARIANTS (low/medium/high/notemplate) are declared in
+          # opencode.jsonc (providers.llama-swap.models.<id>.variants).
+          # We do NOT set aliases or setParamsByID here: includeAliasesInList
+          # would emit aliased ids as SEPARATE /v1/models rows (splitting
+          # the model in OpenCode), and setParamsByID's base rule would
+          # override the request-body reasoning_effort that OpenCode's own
+          # variant overlay sends. The llama-swap discovery format does not
+          # populate `reasoning_options`, so OpenCode does not auto-generate.
         };
     in
     {
@@ -244,7 +225,7 @@
         # 500 is fine for a big model that takes a while to load.
         healthCheckTimeout = 500;
         sendLoadingState = true; # inject loading updates into the reasoning field
-        includeAliasesInList = true;
+        includeAliasesInList = false; # aliased ids are variants in opencode.jsonc, not separate /v1/models rows
 
         # ---- models ---------------------------------------------------------
         models = {
@@ -252,16 +233,6 @@
             name = "Tiel Coder 35B A3B (NanoPlus)";
             hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             # np defaults to 3 (pipelined), concurrencyLimit to 0 (llama-swap default)
-          };
-
-          # Single slot → the ENTIRE 256k KV pool belongs to whichever one
-          # sequence is generating; other chats queue and are served one at a
-          # time (continuous batching still speeds up prompt prefill).
-          "Tiel-Coder-35B-A3B-HighContext" = model35B {
-            name = "Tiel Coder 35B A3B (Single Slot — Full Context)";
-            hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
-            np = 1; # one slot → full 256k context for the one sequence
-            concurrencyLimit = 50; # more full-context chats can queue (still 1-at-a-time)
           };
 
           "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model35B {
@@ -311,7 +282,6 @@
               "--jinja"
               "-ctk q8_0"
               "-ctv q8_0"
-              "--kv-unified"
               "--spec-type draft-mtp"
               "--spec-draft-n-max 2"
               "--spec-draft-p-min 0.6"
@@ -416,14 +386,6 @@
             description = "Speculative (MTP) decode — faster generation";
             pins = {
               "main" = "Qwen3.6-35B-A3B-MTP";
-            };
-          };
-          # Single slot = the full 256k context belongs to whichever one chat
-          # is generating; other chats queue and are served one at a time.
-          "full-context" = {
-            description = "Single slot, full 256k context (requests queue, slower)";
-            pins = {
-              "main" = "Tiel-Coder-35B-A3B-HighContext";
             };
           };
         };
