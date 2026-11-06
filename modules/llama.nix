@@ -58,8 +58,8 @@
       # only (llama-cpp-cuda), which can only talk to the NVIDIA dGPU. Overriding
       # both flags produces one binary that sees BOTH devices:
       #   * CUDA  -> NVIDIA RTX 5070 Ti  (the fast card, holds the model weights)
-      #   * Vulkan-> Intel Graphics RPL-S (the iGPU, holds only the small mmproj)
-      # We keep the heavy model on CUDA and offload ONLY the mmproj to the iGPU
+      #   * Vulkan-> Intel Graphics RPL-S (iGPU (mmproj is forced to CPU; Vulkan loader stays built but unused))
+      # We keep the heavy model on CUDA and keep mmproj on the CPU
       # (the iGPU is slow integrated graphics — putting model layers there would
       # tank generation speed).
       llama-cpp = pkgs-llama.llama-cpp.override {
@@ -77,7 +77,7 @@
       #                     uses 131072)
       #   np              — parallel slots (3 = pipelined, 1 = full context)
       #   fitt            — fan-in iterations (MTP model uses 512)
-      #   offloadMMProj   — true = offload the mmproj to the Intel iGPU (Vulkan0)
+      #   offloadMMProj   — true = force mmproj to the CPU (iGPU/Vulkan0 garbles every image model)
       #   extra           — raw flag list, appended LAST so per-model flags
       #                     live next to the model that needs them
       #
@@ -86,20 +86,21 @@
         {
           hf,
           ctx ? 262144,
-          np ? 3,
+          np ? 1,
           fitt ? 1024,
           offloadMMProj ? false,
           extra ? [ ],
         }:
         let
-          # Image models offload only the small mmproj to the iGPU (Vulkan0);
-          # the heavy weights stay on CUDA. Text models get --no-mmproj-offload.
+          # Image models load the small mmproj ON THE CPU (forced). The Intel
+          # iGPU / Vulkan0 path garbles every image model, every single time, so
+          # we never offload it — --mmproj-device CPU pins it to the CPU. Text
+          # models get --no-mmproj-offload.
           mmproj =
             if offloadMMProj then
               [
-                "--mmproj-offload"
                 "--mmproj-device"
-                "Vulkan0"
+                "CPU"
               ]
             else
               [ "--no-mmproj-offload" ];
@@ -113,6 +114,7 @@
           "-b 2048"
           "-ub 512"
           "--load-mode auto"
+          "--kv-unified"
           "-cram 16384"
           "-cms 2048"
           "--poll 50"
@@ -215,7 +217,7 @@
       #   image             — true = multimodal (has an mmproj); sets capabilities.in
       #   ctx               — context window in tokens (262144 default)
       #   quant             — quant label surfaced in metadata (NanoPlus / -V2.1)
-      #   offloadMMProj     — true = offload mmproj to the Intel iGPU (Vulkan0)
+      #   offloadMMProj     — true = force mmproj to the CPU (iGPU/Vulkan0 garbles every image model)
       #   np                — parallel slots (3 = pipelined, 1 = full context)
       #   concurrencyLimit  — 0 = llama-swap default (10)
       #   fitt              — fan-in iterations (MTP model uses 512)
@@ -229,7 +231,7 @@
           ctx ? 262144,
           quant ? "APEX-I-NanoPlus",
           offloadMMProj ? false,
-          np ? 3,
+          np ? 1,
           concurrencyLimit ? 0,
           fitt ? 1024,
           extra ? [ ],
@@ -322,6 +324,27 @@
             offloadMMProj = true;
             np = 1; # single slot = full 256k context
             concurrencyLimit = 50;
+          };
+
+          # ---- VAL-APEX-I NanoPlus V3 — Qwen3.8 27B dense hybrid ------------
+          # The 27B dense-hybrid family (Gated DeltaNet + full-attention, 64
+          # layers, native 256K). Both ship a Q8_0 mmproj, so offload it to the
+          # Intel iGPU like the other image models. Safe (standard) vs
+          # abiterated (directional refusal-vector removal over Qwen3.8-27B).
+          "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
+            name = "Qwen3.8 27B (VAL-APEX NanoPlus V3)";
+            hf = "IsValorum/Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
+            quant = "VAL-APEX-I-NanoPlus-V3";
+            image = true;
+            offloadMMProj = true;
+          };
+
+          "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
+            name = "Qwen3.8 27B (Abliterated, VAL-APEX NanoPlus V3)";
+            hf = "IsValorum/Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
+            quant = "VAL-APEX-I-NanoPlus-V3";
+            image = true;
+            offloadMMProj = true;
           };
 
           # ---- APEX-I-NanoPlus collection: text models ----------------------
