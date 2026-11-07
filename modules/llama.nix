@@ -163,8 +163,34 @@
           # "--dry-multiplier 0.4"
           # "--dry-base 1.75"
           # "--dry-penalty-last-n 2000"
-          # "--repeat-penalty 1.0"
-          # "--presence-penalty 0.0"
+          # ---- OUTPUT + REASONING CAPS ------------------------------------
+          # --n-predict hard-caps tokens per response. -1 (llama.cpp default)
+          # would let the model generate until the context window; 32768 matches
+          # metadata.max_output_tokens so both layers agree on the ceiling.
+          "--n-predict"
+          "32768"
+          # --reasoning-budget is the circuit breaker for the thinking-loop
+          # doomloop: a hard token cap on the internal-thinking phase so it can
+          # never eat the whole context window. --reasoning-effort medium is the
+          # vendor's default depth; this is the hard ceiling on top of it.
+          "--reasoning-budget"
+          "16384"
+          # injected before the end-of-thinking tag when the budget runs out, so
+          # the model stops looping and emits a real answer instead of cutting off.
+          "--reasoning-budget-message"
+          "Reasoning budget reached: stop thinking and give your final answer now."
+          #"--reasoning-effort"
+          #"medium"
+          # ---- SAMPLING (vendor APEX-I-NanoPlus defaults) ----------------
+          # Repeat/freq/presence penalties DISABLED — vendor requirement for
+          # code: repeat_penalty must be 1.0 and presence/frequency 0.0, else
+          # `{` / `=` / indentation tokens get penalized and the model swaps chars.
+          "--repeat-penalty"
+          "1.0"
+          "--presence-penalty"
+          "0.0"
+          "--frequency-penalty"
+          "0.0"
         ]
         ++ extra;
 
@@ -314,14 +340,14 @@
             name = "Tiel Coder 35B A3B (NanoPlus)";
             hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            # np defaults to 3 (pipelined), concurrencyLimit to 0 (llama-swap default)
+            # np defaults to 1 (full context slot); concurrencyLimit to 0 (llama-swap default)
           };
 
           "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model {
             name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
             hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
-            np = 1; # single slot = full 256k context
+            # np defaults to 1 (full context slot); concurrencyLimit to 0 (llama-swap default)
             concurrencyLimit = 50;
           };
 
@@ -356,6 +382,23 @@
             name = "Qwen3.8 Flash Coder (NanoPlus)";
             hf = "IsValorum/Qwen3.8-Flash-Coder-APEX-I-NanoPlus-GGUF";
             # text-only, qwen4exp architecture
+          };
+
+          # ---- Flash Next — 16 GB VRAM quant (no IsValorum APEX quant) -------
+          # IsValorum only ships "Flash Coder", NOT "Flash Next", so there is no
+          # APEX-I-NanoPlus quant for it. The base Qwen3.8-Flash-Next is a huge
+          # ~167 GB BF16 qwen4_exp MoE, so I picked the best low-VRAM fit instead:
+          #   * zephel01's L448 quant is a SINGLE quant (3 shards) — clean for
+          #     `-hf <repo>`. The popular repos (bartowski/unsloth/ISTA) ship
+          #     dozens of quants and break bare `-hf`, so they're out.
+          #   * built for a 12 GB VRAM / 32 GB RAM machine → ideal for the 16 GB
+          #     dGPU with heavy CPU offload.
+          #   * repo ships NO mmproj, so this is text-only here.
+          "Qwen3.8-Flash-Next" = model {
+            name = "Qwen3.8 Flash Next (L448, 16GB)";
+            hf = "zephel01/Qwen3.8-Flash-Next-12G32G-GGUF";
+            quant = "L448 (zephel01, 16GB)";
+            # text-only (no mmproj in this repo); qwen4_exp, 262k context
           };
 
           "Thomson-1.0-Small" = model {

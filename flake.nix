@@ -27,7 +27,7 @@
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
 
     # LLaMA C++ (CUDA build from source)
-    llama-cpp.url = "github:ggml-org/llama.cpp/v0.8.0";
+    llama-cpp.url = "github:ggml-org/llama.cpp/b12188";
     llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
