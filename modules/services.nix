@@ -21,7 +21,7 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    jack.enable = true;
+    # jack.enable = true; evaluation warning: `services.pipewire.jack.enable` is deprecated, because it introduces global impurity via `LD_LIBRARY_PATH`. Use the `pw-jack` wrapper from `pipewire.jack` where necessary instead.
   };
 
   # Howdy facial recognition (boot-accessible login)
