@@ -177,8 +177,8 @@
           "16384"
           # injected before the end-of-thinking tag when the budget runs out, so
           # the model stops looping and emits a real answer instead of cutting off.
-          "--reasoning-budget-message"
-          "Reasoning budget reached: stop thinking and give your final answer now."
+          #"--reasoning-budget-message"
+          #"Reasoning budget reached: stop thinking and give your final answer now."
           #"--reasoning-effort"
           #"medium"
           # ---- SAMPLING (vendor APEX-I-NanoPlus defaults) ----------------
