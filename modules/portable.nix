@@ -120,8 +120,19 @@ let
     # misc
     icu
     libffi
-    expat
+    # NVIDIA driver — provides libnvidia-ml.so.1 (NVML) for GPU-linked apps
+    nvidiaNvml
   ];
+
+  # NVIDIA Management Library (libnvidia-ml.so.1). Portable / non-Nix apps that
+  # load the driver's NVML at runtime (e.g. Pure Vision — an NVIDIA-only app that
+  # dlopens libnvidia-ml.so.1 for GPU management) fail with
+  # "NVML error: ... libnvidia-ml.so.1: cannot open shared object file" without it.
+  # NVML lives in the driver's `lib` output; there is no separate NVML package in
+  # this nixpkgs, so we point nix-ld at the exact driver the system boots with.
+  # Adding it here makes NVML available system-wide to EVERY nix-ld app, not just
+  # this one — so any future GPU-linked portable app finds it too.
+  nvidiaNvml = config.boot.kernelPackages.nvidiaPackages.latest;
 
   # Extra GUI libraries that some desktop apps link but that are less common.
   # (libxcb-render/libxcb-shm/libxkbcommon-x11/libxkbregistry are bundled inside
