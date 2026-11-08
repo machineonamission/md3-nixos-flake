@@ -22,10 +22,13 @@ let
   purevisionVersion = "1.6.0";
 
   # Local NVIDIA-build AppImage (no public download URL — membership Early Access).
-  # Referenced by relative path so Nix stages it into the build sandbox as an input.
-  # (Kept in gitignored `downloads/` — 2.4 GB, can't be committed. If you move the
-  # file, update this path.)
-  purevisionAppImage = ../downloads/purevision-nvidia.AppImage;
+  # `builtins.path` stages the file into the Nix store at eval time so the sandboxed
+  # build can read it. (Kept in Downloads — 2.4 GB, can't be committed. If you move
+  # the file, update this path.)
+  purevisionAppImage = builtins.path {
+    name = "purevision-nvidia-appimage";
+    path = "/home/melody/Downloads/PureVision-Nvidia(2).AppImage";
+  };
 
   purevision =
     pkgs.runCommand "purevision-${purevisionVersion}"
