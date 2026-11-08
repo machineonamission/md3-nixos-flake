@@ -22,12 +22,13 @@ let
   purevisionVersion = "1.6.0";
 
   # Local NVIDIA-build AppImage (no public download URL — membership Early Access).
-  # `fetchurl` with a file:// URL copies it into the Nix store at eval time (impure),
-  # so the sandboxed build can read it — a bare path would fail with "cannot stat".
+  # `writeBinFile` copies the bytes into the Nix store at eval time (impure, outside
+  # the build sandbox) so the sandboxed build can read it — a bare path or file://
+  # fetch would fail with "cannot stat"/"curl could not open file".
   # If you move the file, update this path and run `nix flake check` to refresh the store copy.
-  purevisionAppImage = pkgs.fetchurl {
+  purevisionAppImage = pkgs.writeBinFile {
     name = "PureVision-Nvidia(2).AppImage";
-    url = "file:///home/melody/Downloads/PureVision-Nvidia(2).AppImage";
+    content = builtins.readFile "/home/melody/Downloads/PureVision-Nvidia(2).AppImage";
   };
 
   purevision =
