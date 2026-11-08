@@ -53,6 +53,9 @@ let
         # — AppRun / AppRun.wrapped / usr/ land directly at the top level.
         ${pkgs.p7zip}/bin/7z x -bd -y purevision.AppImage >/dev/null
 
+        # Drop the raw AppImage (2.4 GB) — we only want the extracted AppDir.
+        rm -f purevision.AppImage
+
         # Copy the self-contained AppDir into $out. --no-preserve=mode keeps the
         # archived exec bits off; we re-enable them explicitly below.
         cp -a --no-preserve=mode ./ "$out/"
