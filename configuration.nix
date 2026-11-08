@@ -80,6 +80,10 @@
   # every Nix app, plus a `run-portable` wrapper for arbitrary portable apps.
   programs.portableApps.enable = true;
 
+  # Pure Vision — real-time on-device censoring overlay (PuryFi, NVIDIA build).
+  # Bundles its own libs; only needs NVML from the driver (added to nix-ld).
+  apps.purevision.enable = true;
+
   # --- System state version ---
   system.stateVersion = "26.11"; # Updated from "26.05" for NixOS 26.11 compatibility
 }
