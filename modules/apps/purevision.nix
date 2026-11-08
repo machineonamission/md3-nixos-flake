@@ -67,13 +67,14 @@ let
           "$out/usr/bin/pure_vision"
 
         # Clean launcher (keeps $out clean and gives us a stable command name).
-        # Self-locating via dirname $0: bin/purevision -> ../AppRun. No build-time
-        # path substitution needed, so it survives Nix string interpolation.
+        # readlink -f resolves the system symlink back to the real store path,
+        # then ../AppRun is found next to it. No build-time path substitution,
+        # so it survives Nix string interpolation.
         cat > "$out/bin/purevision" <<'EOF'
         #!/bin/bash
         # Pure Vision self-locates via /proc/self/exe and sets up its bundled
         # LD_LIBRARY_PATH, so this just forwards to its AppRun bootstrap.
-        exec "$(dirname "$0")/../AppRun" "$@"
+        exec "$(readlink -f "$(dirname "$0")")/../AppRun" "$@"
         EOF
         chmod +x "$out/bin/purevision"
 
