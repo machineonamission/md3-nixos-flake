@@ -25,7 +25,7 @@ let
   # Referenced by relative path so Nix stages it into the build sandbox as an input.
   # (Kept in gitignored `downloads/` — 2.4 GB, can't be committed. If you move the
   # file, update this path.)
-  purevisionAppImage = ../downloads/PureVision-Nvidia (2).AppImage;
+  purevisionAppImage = ../downloads/purevision-nvidia.AppImage;
 
   purevision =
     pkgs.runCommand "purevision-${purevisionVersion}"
