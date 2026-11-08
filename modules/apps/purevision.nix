@@ -67,11 +67,13 @@ let
           "$out/usr/bin/pure_vision"
 
         # Clean launcher (keeps $out clean and gives us a stable command name).
-        cat > "$out/bin/purevision" <<'EOF'
+        # Unquoted heredoc so ${out} expands at build time; escape "$@" so it
+        # survives to runtime.
+        cat > "$out/bin/purevision" <<EOF
         #!/bin/bash
         # Pure Vision self-locates via /proc/self/exe and sets up its bundled
         # LD_LIBRARY_PATH, so this just forwards to its AppRun bootstrap.
-        exec "$out/AppRun" "$@"
+        exec '${out}/AppRun' "\$@"
         EOF
         chmod +x "$out/bin/purevision"
 
