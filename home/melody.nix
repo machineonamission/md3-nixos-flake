@@ -188,6 +188,8 @@
     qbittorrent
 
     blender
+
+    eden
     
   ];
 
