@@ -25,7 +25,7 @@ let
   # `fetchfile` copies it into the Nix store at eval time (impure), so the sandboxed
   # build can read it — a plain path would fail with "cannot stat" inside the sandbox.
   # If you move the file, update this path and run `nix flake check` to refresh the store copy.
-  purevisionAppImage = pkgs.fetchfile {
+  purevisionAppImage = pkgs.lib.fetchfile {
     name = "PureVision-Nvidia(2).AppImage";
     file = "/home/melody/Downloads/PureVision-Nvidia(2).AppImage";
   };
