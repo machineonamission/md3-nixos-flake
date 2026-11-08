@@ -67,8 +67,8 @@ let
           "$out/usr/bin/pure_vision"
 
         # Clean launcher (keeps $out clean and gives us a stable command name).
-        # Unquoted heredoc so ${out} expands at build time; escape "$@" so it
-        # survives to runtime.
+        # Unquoted heredoc so the store path expands at build time; escape the
+        # runtime args marker so it survives to the user's shell.
         cat > "$out/bin/purevision" <<EOF
         #!/bin/bash
         # Pure Vision self-locates via /proc/self/exe and sets up its bundled
