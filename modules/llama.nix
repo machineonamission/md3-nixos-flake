@@ -330,7 +330,7 @@
         # healthCheckTimeout is in SECONDS (schema min 15, default 120).
         # 500 is fine for a big model that takes a while to load.
         healthCheckTimeout = 500;
-        sendLoadingState = true; # inject loading updates into the reasoning field
+        sendLoadingState = false; # inject loading updates into the reasoning field
         includeAliasesInList = false; # aliased ids are variants in opencode.jsonc, not separate /v1/models rows
 
         # ---- models ---------------------------------------------------------
@@ -518,7 +518,7 @@
               "${llama-server}"
               "--port \${PORT}"
               "-hf ggml-org/Qwen3.5-0.8B-GGUF"
-              "-c 8192"
+              "-c 32768"
               "-b 512"
               "--temp 0.3" # low for stable title generation
               "--jinja"
