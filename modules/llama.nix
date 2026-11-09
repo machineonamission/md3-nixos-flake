@@ -151,7 +151,7 @@
           "--metrics"
           "--webui"
           "--embedding"
-          "-sps 0.1"
+          "-sps 0.5"
           "-v"
           "-lv 4"
           "--log-colors on"
@@ -524,10 +524,6 @@
               "--jinja"
               "--host 0.0.0.0"
               "-np 1"
-              # HTTP read/write timeout (s) — NOT an unload timeout. A tiny
-              # model finishing a short title in well under a second never
-              # trips this; 120s is just a safe ceiling.
-              "--timeout 120"
               "--no-warmup"
             ]);
             checkEndpoint = "/health";
