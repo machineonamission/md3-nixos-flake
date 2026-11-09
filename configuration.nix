@@ -36,9 +36,26 @@
   # --- Nix settings (substituters + trusted keys) ---
   # These are the full set of cache mirrors and their public keys.
   nix.settings = {
+    # --- Speed: download prebuilt binaries instead of compiling ---
+    # The substituters below + substitute (default on) make Nix download
+    # prebuilt binaries from cache.nixos.org + flox instead of compiling. That
+    # is the main "download instead of build" lever and it works on Nix 2.34.9.
+    # keep-going: keep building the rest if one derivation fails (e.g. a broken
+    # package), instead of aborting the whole switch on the first error.
+    keep-going = true;
+    # Parallel build jobs. i7-14700K = 28 logical threads (16 P-threads + 8
+    # E-cores). 24 jobs ~= 85% CPU — your "~80% vibes budget" so it lags the
+    # desktop a bit while building. Want full tilt? set to 28. Want it cooler?
+    # lower it. Nix still runs builds at nice/ionice priority 5 by default, so
+    # interactive apps (games, GUIs) keep scheduling priority.
+    max-jobs = 24;
+
     experimental-features = [
       "nix-command"
       "flakes"
+      # "http-cache"  <- re-enable after upgrading Nix to 2.35+ (unsupported on
+      # 2.34.x). Caches downloaded binaries + HTTP build outputs so repeat
+      # downloads are served from disk. Content-addressed caches are immutable.
     ];
     trusted-users = [
       "melody"

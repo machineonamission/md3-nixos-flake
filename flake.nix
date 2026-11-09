@@ -17,7 +17,7 @@
 
     # OpenCode v2
     opencode.url = "github:anomalyco/opencode/v2.1.4"; # wait until https://github.com/anomalyco/opencode/issues/59882 is fixed before updating past 2.2.0
-    opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    # opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";  # might be broken until #59882 is fixed?
 
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
@@ -29,6 +29,7 @@
     # LLaMA C++ (CUDA build from source)
     # note: updating pin causes full rebuild from source which takes forever
     # but do update regularly
+    # b12211  is latest as of 2026-11-08 10:45 pm cst 
     llama-cpp.url = "github:ggml-org/llama.cpp/b12188";  # 2026-Nov-07. 
     llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };

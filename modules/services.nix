@@ -64,4 +64,8 @@
 
   # IR emitter (e.g., for media center remote control)
   services.linux-enable-ir-emitter.enable = true;
+
+  # https://wiki.nixos.org/wiki/Storage_optimization
+  # nix-store --optimise
+  nix.optimise.automatic = true;
 }

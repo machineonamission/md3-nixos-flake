@@ -38,7 +38,12 @@
     dotnet-sdk
     equibop
     ffmpeg
-    fnm
+    # fnm removed 2026-11-08: fnm 1.39.0 fails to build in nixpkgs — its zstd
+    # dependency needs pkg-config, which the derivation doesn't declare as a
+    # nativeBuildInput (genuine nixpkgs bug). Redundant with `nodejs` anyway.
+    # Re-add only if you specifically want fnm; override may still need the
+    # vendored zstd feature to actually build.
+    # fnm.overrideAttrs (a: { nativeBuildInputs = a.nativeBuildInputs ++ [ pkgs.pkg-config pkgs.zstd ]; })
     # Note: gdb conflicts with cuda-merged (CUDA includes gdb syscalls)
     gnupg
     keepassxc
@@ -190,7 +195,7 @@
     blender
 
     eden
-    
+
   ];
 
   programs.home-manager.enable = true;
@@ -242,8 +247,6 @@
 
   #  services.home-manager.autoUpgrade.enable = true;
   fonts.fontconfig.enable = true;
-
-
 
   # Home-manager version
   home.stateVersion = "26.05";
