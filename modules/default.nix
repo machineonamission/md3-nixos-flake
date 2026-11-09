@@ -10,7 +10,7 @@
     ./llama.nix
     ./portable.nix
     ./icon-fix.nix
-    ./apps/purevision.nix
+    # ./apps/purevision.nix
     #./llama-presets.nix
   ];
 }
