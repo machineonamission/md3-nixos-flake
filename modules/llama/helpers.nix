@@ -98,9 +98,9 @@ let
       "-np ${toString np}"
       "-cb"
       "--cache-prompt"
+      "--cache-ram 32728"
       "--cache-idle-slots"
       "--slots"
-      "-to 3600"
       "--threads-http -1"
       "--metrics"
       "--webui"
@@ -133,6 +133,7 @@ let
       "0.0"
       "--frequency-penalty"
       "0.0"
+
     ]
     ++ extra;
 
@@ -217,6 +218,11 @@ let
             ;
         }
         ++ (if mtp != null then mtp hf else [ ])
+        ++ lib.concatStringsSep " " (
+
+          ""
+        )
+
       );
       checkEndpoint = "/health";
 
