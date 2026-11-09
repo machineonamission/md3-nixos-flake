@@ -325,6 +325,15 @@
       port = 9930; # llama-swap front door
       listenAddress = "0.0.0.0"; # allow other devices to access webui lol
 
+      groups = {
+        nogpu = {
+          swap = false;
+          members = [
+            "Qwen3.5-4B"
+          ];
+        };
+      };
+
       settings = {
         # ---- global settings ------------------------------------------------
         # healthCheckTimeout is in SECONDS (schema min 15, default 120).
@@ -512,12 +521,12 @@
           # Tiny model for title generation. Unloaded after 120s idle so it
           # doesn't stay resident and hog RAM; the next title reloads it (the
           # load/unload cost we chose to eat). ttl = 0 would be "never unload".
-          "Qwen3.5-0.8B" = {
-            name = "Qwen3.5-0.8B (titles)";
+          "Qwen3.5-4B" = {
+            name = "Qwen3.5-4B (titles)";
             cmd = lib.concatStringsSep " " ([
               "${llama-server}"
               "--port \${PORT}"
-              "-hf ggml-org/Qwen3.5-0.8B-GGUF"
+              "-hf ggml-org/Qwen3.5-4B-GGUF"
               "-c 32768"
               "-b 512"
               "--temp 0.3" # low for stable title generation
@@ -525,18 +534,21 @@
               "--host 0.0.0.0"
               "-np 1"
               "--no-warmup"
+              "--reasoning-budget" "512"
+              "--n-predict" "2048"
+              "--n-gpu-layers" "0"
             ]);
             checkEndpoint = "/health";
             ttl = 120;
             metadata = {
-              max_input_tokens = 8192;
+              max_input_tokens = 32768;
               max_output_tokens = 2048;
             };
             capabilities = {
               "in" = [ "text" ];
               out = [ "text" ];
               tools = false;
-              context = 8192;
+              context = 32768;
             };
           };
         };

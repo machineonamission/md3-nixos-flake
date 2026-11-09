@@ -201,11 +201,10 @@
   programs.home-manager.enable = true;
   programs.direnv.enable = true;
   programs.git = {
+    enable = true;
     settings.user.name = "Melody";
     settings.user.email = "machineonamission@gmail.com";
     # gh auth credential helper — hardcoded so it never gets reset
-    settings.credential."https://github.com".helper = "gh auth git-credential";
-    settings.credential."https://gist.github.com".helper = "gh auth git-credential";
   };
   programs.bash = {
     enable = true;
