@@ -7,7 +7,7 @@
     ./packages.nix
     ./desktop.nix
     ./opencode.nix
-    ./llama.nix
+    ./llama
     ./portable.nix
     ./icon-fix.nix
     # ./apps/purevision.nix
