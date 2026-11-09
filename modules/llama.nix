@@ -325,16 +325,20 @@
       port = 9930; # llama-swap front door
       listenAddress = "0.0.0.0"; # allow other devices to access webui lol
 
-      groups = {
-        nogpu = {
-          swap = false;
+      settings = {
+        routing.router.settings.groups.igpu = {
+          # swap/exclusive: false keeps all members loaded and avoids
+          # unloading other groups
+          swap = true;
+          exclusive = false;
+          # persistent: other groups cannot unload this group's members
+          persistent = true;
+          # models here can all load and unload as if theres no other models :)
           members = [
-            "Qwen3.5-4B"
+            "Qwen3.5-2B"
+            "Qwen3.5-0.8B"
           ];
         };
-      };
-
-      settings = {
         # ---- global settings ------------------------------------------------
         # healthCheckTimeout is in SECONDS (schema min 15, default 120).
         # 500 is fine for a big model that takes a while to load.
@@ -357,7 +361,7 @@
             hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
             image = true;
             # np defaults to 1 (full context slot); concurrencyLimit to 0 (llama-swap default)
-            concurrencyLimit = 50;
+            # concurrencyLimit = 50;
           };
 
           # ---- VAL-APEX-I NanoPlus V3 — Qwen3.8 27B dense hybrid ------------
@@ -518,73 +522,129 @@
             ];
           };
 
-          # Tiny model for title generation. Unloaded after 120s idle so it
-          # doesn't stay resident and hog RAM; the next title reloads it (the
-          # load/unload cost we chose to eat). ttl = 0 would be "never unload".
-          "Qwen3.5-4B" = {
-            name = "Qwen3.5-4B (titles)";
+          "Qwen3.5-2B" = {
+            name = "Qwen3.5-2B iGPU (titles)";
             cmd = lib.concatStringsSep " " ([
               "${llama-server}"
               "--port \${PORT}"
-              "-hf ggml-org/Qwen3.5-4B-GGUF"
-              "-c 32768"
-              "-b 512"
-              "--temp 0.3" # low for stable title generation
+              "-hf unsloth/Qwen3.5-2B-GGUF"
+
+              # mix of recommended defaults
+              "--temp 0.6"
+              "--top-k 20"
+              "--top-p 0.95"
+              "--min-p 0.0"
+              "--presence-penalty 1.5"
+
+              "-c 8192"
+              "--reasoning-budget 512"
+              "--n-predict 2048"
               "--jinja"
               "--host 0.0.0.0"
               "-np 1"
               "--no-warmup"
-              "--reasoning-budget" "512"
-              "--n-predict" "2048"
-              "--n-gpu-layers" "0"
+              "--device Vulkan0"
             ]);
+            
             checkEndpoint = "/health";
             ttl = 120;
             metadata = {
-              max_input_tokens = 32768;
+              max_input_tokens = 8192;
               max_output_tokens = 2048;
             };
             capabilities = {
               "in" = [ "text" ];
               out = [ "text" ];
               tools = false;
-              context = 32768;
+              context = 8192;
+            };
+          };
+
+          # Tiny model for title generation. Unloaded after 120s idle so it
+          # doesn't stay resident and hog RAM; the next title reloads it (the
+          # load/unload cost we chose to eat). ttl = 0 would be "never unload".
+          "Qwen3.5-0.8B" = {
+            name = "Qwen3.5-0.8B iGPU (titles)";
+            cmd = lib.concatStringsSep " " ([
+              "${llama-server}"
+              "--port \${PORT}"
+              "-hf unsloth/Qwen3.5-0.8B-GGUF"
+
+              # mix of recommended defaults
+              "--temp 0.6"
+              "--top-k 20"
+              "--top-p 0.95"
+              "--min-p 0.0"
+              "--presence-penalty 2"
+
+              "-c 16384"
+              "--reasoning-budget 256"
+              "--n-predict 2048"
+              "--jinja"
+              "--host 0.0.0.0"
+              "-np 1"
+              "--no-warmup"
+              "--device Vulkan0"
+            ]);
+            checkEndpoint = "/health";
+            ttl = 120;
+            metadata = {
+              max_input_tokens = 16384;
+              max_output_tokens = 2048;
+            };
+            capabilities = {
+              "in" = [ "text" ];
+              out = [ "text" ];
+              tools = false;
+              context = 16384;
             };
           };
         };
 
         # ---- startup: default profile = main coding model ----
-        hooks = {
-          on_startup = {
-            # preload keeps a model resident so it's instant; it does NOT make an
-            # incompatible model load. A ttl:0 model stays loaded.
-            preload = [
-              # "Qwen3-0.6B-Instruct"
-            ];
-            # start every session on the main coding model (not the MTP model)
-            profile = "default";
-          };
-        };
+        
 
+        #       pins = {
+        #   "coder" = "Tiel-Coder-35B-A3B";
+        #   "coder-unsafe" = "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+        #   "title-nothink" = "Qwen3.5-2B";
+        #   "title-think" = "Qwen3.5-0.8B";
+        # };
         # ---- profiles (runtime-selectable model-ID rewrites) ----------------
         # Only ONE profile may be active at a time; hooks.on_startup.profile
         # picks the startup one.
-        profiles = {
-          "default" = {
-            description = "Main coding model (Tiel-Coder 35B)";
-            pins = {
-              "main" = "Tiel-Coder-35B-A3B";
-            };
+        selectors = {
+          "coder" = {
+            strategy = "warm";
+            name = "Coder";
+            description = "Coder GPU Aligned";
+            targets = [
+              "Tiel-Coder-35B-A3B"
+            ];
           };
-          "mtp" = {
-            description = "Speculative (MTP) decode — faster generation";
-            pins = {
-              "main" = "Qwen3.6-35B-A3B-MTP";
-            };
+          "coder-unsafe" = {
+            strategy = "warm";
+            name = "Coder (Unsafe)";
+            description = "Unsafe/Abliterated Coder GPU";
+            targets = [
+              "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF"
+            ];
+          };
+          "title" = {
+            strategy = "warm";
+            name = "Title";
+            description = "Title Generation (No Reasoning)";
+            targets = [
+              "Qwen3.5-2B"
+              "Qwen3.5-0.8B"
+            ];
           };
         };
       };
     };
+
+
+
 
   # The Vulkan iGPU (Intel RPL-S) is reached by llama-server through the Vulkan
   # loader. The service runs as a DynamicUser with a restricted PATH, so the
