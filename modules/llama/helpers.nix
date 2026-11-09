@@ -218,10 +218,10 @@ let
             ;
         }
         ++ (if mtp != null then mtp hf else [ ])
-        ++ lib.concatStringsSep " " (
-
-          ""
-        )
+        # TO ADD FLAGS TO ONLY CODER MODELS 
+        # ++ lib.concatStringsSep " " ([
+        #   ""  
+        # ])
 
       );
       checkEndpoint = "/health";
