@@ -17,7 +17,7 @@ let
       targets,
     }:
     {
-      strategy = "warm"; # warm-start keeps the target's weights resident
+      strategy = "pin"; # warm-start keeps the target's weights resident
       inherit name description targets;
     };
 in
