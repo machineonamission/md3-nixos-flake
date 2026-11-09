@@ -27,7 +27,9 @@
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
 
     # LLaMA C++ (CUDA build from source)
-    llama-cpp.url = "github:ggml-org/llama.cpp/b12188";
+    # note: updating pin causes full rebuild from source which takes forever
+    # but do update regularly
+    llama-cpp.url = "github:ggml-org/llama.cpp/b12188";  # 2026-Nov-07. 
     llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
