@@ -51,11 +51,67 @@ in
     port = 9930; # llama-swap OpenAI-compatible front door
     listenAddress = "0.0.0.0"; # let other devices reach the webui
     settings = {
-      # ---- routing: iGPU group holds the tiny title models -----------------
+      # ---- routing: SEPARATE iGPU + VRAM swap groups ------------------------
+      # Two independent groups so the two devices don't fight. The group router
+      # (routing.router.use defaults to "group") is the classic setup: one
+      # exclusive group for the big coders, one persistent group for the small
+      # always-ready models. A model can belong to only ONE group, and every
+      # member must be a real model id defined in models.nix — so every model
+      # is listed in exactly one of these two groups.
+      #
+      #   vram  — the main coders on CUDA (RTX 5070 Ti).
+      #           swap=true   => one coder at a time
+      #           exclusive=true => running a coder unloads the other coders
+      #
+      #   igpu  — the tiny title models on Vulkan0 (Intel iGPU).
+      #           persistent=true => the vram group can never unload these, so
+      #                           titles are always resident and ready
+      #           swap=false    => both title models coexist
+      #
+      # NOTE: image mmproj runs on the CPU (--no-mmproj-offload) per the baseCmd
+      # decision in helpers.nix — the Vulkan0 path garbles every image model —
+      # so it is NOT an igGPU member. The iGPU group only holds the title models.
+      routing.router.settings.groups.vram = {
+        swap = true; # one coder at a time on the RTX
+        exclusive = true; # running a coder unloads the other coders
+        members = [
+          # full coders
+          "Tiel-Coder-35B-A3B"
+          "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF"
+          "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP"
+          # hybrid / dense Qwen3.8-27B family
+          "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
+          "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF"
+          # MoE coders
+          "Tiel-Coder-35B-A3B-MTP"
+          "Ornith-1.5-35B-A3B"
+          "MiniCPM-V-4.7-35B-A3B"
+          "MiniCPM-V-4.7-35B-A3B-MTP"
+          "MiniCPM-V-4.7-35B-A3B-Abliterated"
+          "Xing4.0-29B-A4B-APEX-I-NanoPlus-Abliterated-GGUF"
+          "Occamy-1.0-APEX-I-NanoPlus-V2.1-Abliterated-GGUF"
+          "Occamy-1.0"
+          "LFM2.5-24B-A2B"
+          "Qwen3.6-35B-A3B-MTP"
+          "Qwen3.8-Flash-Coder"
+          "Qwen3.8-Flash-Next"
+          "KAT-Coder-V2.5-Dev"
+          "Sage-A1.5"
+          "Flint"
+          "T-Search"
+          "Thomson-1.0-Small"
+        ];
+      };
+
       routing.router.settings.groups.igpu = {
-        swap = true; # keep all members loaded; avoids unloading other groups
-        exclusive = false;
-        persistent = true; # other groups can't unload these members
+        swap = false; # both title models coexist
+        exclusive = false; # doesn't affect the vram group
+        persistent = true; # the vram group can't unload these
         members = [
           "Qwen3.5-2B"
           "Qwen3.5-0.8B"
