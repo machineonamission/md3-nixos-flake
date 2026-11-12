@@ -139,8 +139,8 @@ let
 
   # mtpExtra — speculative decode with a SEPARATE draft head. Occamy-1.0 and
   # KAT-Coder-V2.5-Dev ship a standalone mtp-*.gguf in the SAME repo, so
-  # --draft-model targets it with `repo:file` (llama.cpp HF targeting, the same
-  # syntax --hf uses). Returns the flag list for `model` to append.
+  # --spec-draft-model targets it with `repo:file` (llama.cpp HF targeting, the
+  # same syntax --hf uses). Returns the flag list for `model` to append.
   #   repo          — the model's HF repo (holds the draft head too)
   #   file          — the standalone draft .gguf filename
   #   specDraftNMax — Occamy's documented knob (max draft tokens)
@@ -155,7 +155,7 @@ let
     [
       "--spec-type"
       "draft-mtp"
-      "--draft-model"
+      "--spec-draft-model"
       "${repo}:${file}"
     ]
     ++ (
@@ -176,6 +176,29 @@ let
       else
         [ ]
     );
+
+  # selfMtp — speculative decode with a SELF-CONTAINED MTP head: the MTP block
+  # lives INSIDE the main GGUF (blk.64.* on the Qwen3.8-27B dense-hybrid family,
+  # blk.40 on Qwen3.6-35B-A3B-MTP) so there is NO separate --spec-draft-model.
+  # Returns the flag list for `extra`. Pair with `fitt = 512` (higher fan-in for
+  # the self-contained head) in the model literal.
+  #
+  # IMPORTANT: this also DISABLES the auto-detection of a repo's `speculative/`
+  # sidecar. llama.cpp's -hf resolution only looks for a dflash/dspark/eagle3
+  # sidecar when the requested spec type matches (arg.cpp: opts.download_dflash =
+  # spec_type_draft_dflash). Requesting draft-mtp here means a repo that ships
+  # BOTH an integrated MTP head AND a dflash2 sidecar (e.g. EfficientThink) loads
+  # the integrated MTP head and ignores the sidecar — which is what we want,
+  # because the dflash2 sidecar crashes v0.5.0's load path ("dflash requires
+  # ctx_other to be set").
+  selfMtp = [
+    "--spec-type"
+    "draft-mtp"
+    "--spec-draft-n-max"
+    "2"
+    "--spec-draft-p-min"
+    "0.6"
+  ];
 
   # model — builds a full llama-swap entry for an APEX-I-NanoPlus model. Wraps
   # baseCmd (the shared command) with per-model capabilities + metadata. Every
@@ -218,9 +241,9 @@ let
             ;
         }
         ++ (if mtp != null then mtp hf else [ ])
-        # TO ADD FLAGS TO ONLY CODER MODELS 
+        # TO ADD FLAGS TO ONLY CODER MODELS
         # ++ lib.concatStringsSep " " ([
-        #   ""  
+        #   ""
         # ])
 
       );
@@ -302,6 +325,7 @@ in
   inherit
     baseCmd
     mtpExtra
+    selfMtp
     model
     titleModel
     ;

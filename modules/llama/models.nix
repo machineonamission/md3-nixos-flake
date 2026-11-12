@@ -7,6 +7,7 @@
   model,
   titleModel,
   mtpExtra,
+  selfMtp,
   ...
 }:
 {
@@ -21,7 +22,7 @@
   # IsValorum's ultra-low-BPW quant makes that head a rough drafter. But the base
   # model it is quantized FROM (peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF) ships its
   # OWN draft head at higher precision, same qwen35moe arch + vocab, so it's
-  # architecture-compatible here. Point --draft-model at that base repo:file.
+  # architecture-compatible here. Point --spec-draft-model at that base repo:file.
   # Cross-quant experiment — test it, and drop this literal if it loops or helps.
   "Tiel-Coder-35B-A3B-MTP" = model {
     name = "Tiel Coder 35B A3B (NanoPlus, MTP)";
@@ -63,18 +64,24 @@
   # Both ship a Q8_0 mmproj, so offload it to the Intel iGPU like the other
   # image models. Safe (standard) vs abiterated (directional refusal-vector
   # removal over Qwen3.8-27B).
+  # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
   "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    fitt = 512; # higher fan-in for the self-contained MTP head
+    extra = selfMtp;
   };
 
+  # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
   "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B (Abliterated, VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    fitt = 512; # higher fan-in for the self-contained MTP head
+    extra = selfMtp;
   };
 
   # ---- VAL-APEX-I-NanoPlus-V3 (27B dense hybrid) — more variants -----------
@@ -82,18 +89,30 @@
   # EfficientThink / Coder390 / Swift ship a separate mmproj (image); TTURBO is
   # a davidau-style twin-turbo vision model with the projector embedded in the
   # GGUF (no separate mmproj file), so --no-mmproj-offload. Arete is text-only.
+  # This repo ships BOTH a self-contained MTP head (blk.64.*) AND a separate
+  # speculative/dflash2-*.gguf sidecar. llama.cpp's -hf auto-detects the dflash2
+  # sidecar and tries to load it as the draft, but the dflash2 sidecar has no
+  # lm_head and needs ctx_other wired to the target context — v0.5.0's load path
+  # dies on "dflash requires ctx_other to be set" and the model never comes up.
+  # Requesting draft-mtp (selfMtp) makes llama.cpp use the integrated MTP head
+  # AND stop auto-picking the dflash sidecar, which fixes the crash.
   "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B EfficientThink (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    fitt = 512; # higher fan-in for the self-contained MTP head
+    extra = selfMtp;
   };
 
+  # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
   "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B TTURBO-709 Unc (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    fitt = 512; # higher fan-in for the self-contained MTP head
+    extra = selfMtp;
   };
 
   "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
@@ -102,11 +121,14 @@
     quant = "VAL-APEX-I-NanoPlus-V3";
   };
 
+  # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
   "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Huihui Qwen3.8 27B Coder390 EfficientThink (VAL-APEX NanoPlus V3, Abliterated)";
     hf = "IsValorum/Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    fitt = 512; # higher fan-in for the self-contained MTP head
+    extra = selfMtp;
   };
 
   # Swift-1.5 is self-contained MTP (the MTP head lives in blk, like Qwen3.6-35B-
@@ -118,14 +140,7 @@
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512;
-    extra = [
-      "--spec-type"
-      "draft-mtp"
-      "--spec-draft-n-max"
-      "2"
-      "--spec-draft-p-min"
-      "0.6"
-    ];
+    extra = selfMtp;
   };
 
   # ---- APEX-I-NanoPlus collection: text models ----------------------------
@@ -288,14 +303,7 @@
     hf = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
-    extra = [
-      "--spec-type"
-      "draft-mtp"
-      "--spec-draft-n-max"
-      "2"
-      "--spec-draft-p-min"
-      "0.6"
-    ];
+    extra = selfMtp;
   };
 
   # ---- tiny iGPU title models ---------------------------------------------

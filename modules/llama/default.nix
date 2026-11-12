@@ -126,7 +126,14 @@ in
       includeAliasesInList = false; # aliases are variants in opencode.jsonc, not separate /v1/models rows
 
       # ---- models (drop-in literals; all shared flags come from `model`) ----
-      models = import ./models.nix { inherit (llama) model titleModel mtpExtra; };
+      models = import ./models.nix {
+        inherit (llama)
+          model
+          titleModel
+          mtpExtra
+          selfMtp
+          ;
+      };
 
       # ---- profiles (runtime-selectable model-ID rewrites) ----------------
       selectors = import ./profiles.nix { };

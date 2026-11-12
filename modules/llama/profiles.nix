@@ -76,6 +76,18 @@ in
     ];
   };
 
+  # "system" — hybrid-dense + self-contained MTP, best for system / admin tasks.
+  # EfficientThink variant: extended internal thinking for complex commands and
+  # troubleshooting, still the same 27B dense family + integrated MTP drafter.
+  # Distinct from "mixed" (base hybrid dense) so you can swap to the thinking one.
+  "system" = profile {
+    name = "System (MTP Hybrid)";
+    description = "Best Hybrid-Dense MTP Coder for System Tasks GPU";
+    targets = [
+      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
+    ];
+  };
+
   # "swap-back" — revert to the default full coder (Tiel).
   "swap-back" = profile {
     name = "Swap Back";
