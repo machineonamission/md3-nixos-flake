@@ -39,10 +39,9 @@
     # the base system; gdbus lives in glib's -bin output.
     glib
     appimage-run
-
-  unrar
-  p7zip
-  rar
+    unrar
+    p7zip
+    rar
   ];
 
   # Programs: git + other system programs

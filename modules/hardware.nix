@@ -32,7 +32,7 @@
     nvidiaSettings = true;
     # branch = "bleeding_edge";
     # https://github.com/paul-wtf/nixos/pull/7/changes
-        package = config.boot.kernelPackages.nvidiaPackages.latest.overrideAttrs (old: {
+    package = config.boot.kernelPackages.nvidiaPackages.latest.overrideAttrs (old: {
       postInstall = toString old.postInstall + ''
         for i in nvidia-cuda-mps-control nvidia-cuda-mps-server nvidia-smi nvidia-debugdump nvidia-powerd; do
           if [ -e $bin/origBin/$i ]; then
@@ -63,8 +63,8 @@
   programs.partition-manager.enable = true;
   programs.nix-ld.enable = true;
   programs.appimage = {
-      binfmt = true;
-      enable = true;
-      
-    };
+    binfmt = true;
+    enable = true;
+
+  };
 }
