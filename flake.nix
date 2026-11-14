@@ -16,7 +16,7 @@
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # OpenCode v2 — bumped past 2.2.0; #59882 node_modules hash workaround applied in modules/opencode.nix
-    opencode.url = "github:anomalyco/opencode/v2.1.4";
+    opencode.url = "github:anomalyco/opencode/v2.3.0";
 
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
