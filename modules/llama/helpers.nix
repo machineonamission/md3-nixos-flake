@@ -40,6 +40,15 @@ let
   baseCmd =
     {
       hf,
+      # hfFile — when set, targets a SPECIFIC GGUF file in the HF repo via
+      # `-hf repo:file`. Some repos (e.g. EfficientThink) also ship a
+      # `speculative/dflash2-*.gguf` speculative sidecar that llama.cpp's `-hf`
+      # auto-selection matches on the default quant pattern and loads as the
+      # PRIMARY model. A dflash sidecar is a DRAFT that needs a paired target
+      # context, so loading it as the model dies with
+      # "dflash requires ctx_other to be set". Pointing at the real model file
+      # bypasses auto-selection entirely.
+      hfFile ? null,
       ctx ? 262144,
       np ? 1,
       fitt ? 1024,
@@ -47,6 +56,9 @@ let
       extra ? [ ],
     }:
     let
+      # `-hf repo:file` when a specific file is targeted, else just `-hf repo`
+      hfArg = if hfFile != null then "${hf}:${hfFile}" else hf;
+
       # Image models load the small mmproj ON THE CPU. The Intel iGPU / Vulkan0
       # path garbles every image model, every time, so we never offload it. Text
       # models get --no-mmproj-offload.
@@ -63,7 +75,7 @@ let
     [
       "${llama-server}"
       "--port \${PORT}"
-      "-hf ${hf}"
+      "-hf ${hfArg}"
       "--image-min-tokens 1024"
       "-c ${toString ctx}"
       "-b 2048"
@@ -217,6 +229,10 @@ let
     {
       name,
       hf,
+      # hfFile — see baseCmd; targets a specific GGUF file (`-hf repo:file`) for
+      # repos that ship a speculative sidecar llama.cpp would otherwise pick as
+      # the primary model.
+      hfFile ? null,
       image ? false,
       ctx ? 262144,
       quant ? "APEX-I-NanoPlus",
@@ -233,6 +249,7 @@ let
         baseCmd {
           inherit
             hf
+            hfFile
             ctx
             np
             fitt

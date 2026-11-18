@@ -89,16 +89,18 @@
   # EfficientThink / Coder390 / Swift ship a separate mmproj (image); TTURBO is
   # a davidau-style twin-turbo vision model with the projector embedded in the
   # GGUF (no separate mmproj file), so --no-mmproj-offload. Arete is text-only.
-  # This repo ships BOTH a self-contained MTP head (blk.64.*) AND a separate
-  # speculative/dflash2-*.gguf sidecar. llama.cpp's -hf auto-detects the dflash2
-  # sidecar and tries to load it as the draft, but the dflash2 sidecar has no
-  # lm_head and needs ctx_other wired to the target context — v0.5.0's load path
-  # dies on "dflash requires ctx_other to be set" and the model never comes up.
-  # Requesting draft-mtp (selfMtp) makes llama.cpp use the integrated MTP head
-  # AND stop auto-picking the dflash sidecar, which fixes the crash.
+  # EfficientThink is the ONLY one that also ships a `speculative/dflash2-*.gguf`
+  # speculative sidecar. llama.cpp's -hf auto-selection matches that sidecar on
+  # the default quant pattern and loads it as the PRIMARY model; a dflash sidecar
+  # is a DRAFT with no lm_head that needs a paired target context, so it dies on
+  # "dflash requires ctx_other to be set" and the model never comes up. `hfFile`
+  # points -hf at the real model file to bypass auto-selection, and selfMtp
+  # (draft-mtp) then uses the self-contained MTP head while keeping the dflash
+  # sidecar from being pulled in as a draft.
   "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B EfficientThink (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
