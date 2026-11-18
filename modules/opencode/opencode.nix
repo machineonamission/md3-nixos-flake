@@ -5,7 +5,7 @@
 # This is a HOME-MANAGER module (option `programs.opencode`). It:
 #   1. installs the OpenCode CLI + Desktop (same fixed-output node_modules
 #      workaround as the old system module — see below)
-#   2. writes ~/.config/opencode/opencode.jsonc via lib.genText
+#   2. writes ~/.config/opencode/opencode.jsonc via home.file
 #
 # Both are built by `nixos-rebuild build` / `nix build`. The generated JSONC is
 # produced from the small declarative helpers below (models.nix, permissions.nix)
@@ -225,23 +225,21 @@ let
   };
 in
 {
-  options.programs.opencode = {
-    enable = lib.mkEnableOption "OpenCode CLI + Desktop and generated config" {
-      description = "Enable the OpenCode editor and generate ~/.config/opencode/opencode.jsonc from Nix.";
-    };
-  };
-}
-// lib.optionalAttrs config.programs.opencode.enable {
-  # --- binaries -------------------------------------------------------
-  home.packages = with pkgs; [
-    fixedOpencode
-    fixedOpencodeDesktop
-  ];
+  config = {
+    # --- binaries -------------------------------------------------------
+    # The CLI is installed by Home Manager's built-in `programs.opencode`
+    # module; point it at our fixed build (node_modules FOD workaround).
+    programs.opencode.package = lib.mkIf config.programs.opencode.enable fixedOpencode;
+    # The Desktop is a separate package — install it here.
+    home.packages = lib.mkIf config.programs.opencode.enable [ fixedOpencodeDesktop ];
 
-  # --- generated config (built by nixos-rebuild build) ----------------
-  # home-manager writes this text into ~/.config/opencode/opencode.jsonc.
-  # models.prettyJson returns the full config as pretty-printed JSONC.
-  home.file.".config/opencode/opencode.jsonc" = {
-    text = models.prettyJson configValue;
+    # --- generated config (built by nixos-rebuild build) ----------------
+    # home-manager writes this text into ~/.config/opencode/opencode.jsonc.
+    # `opencode.jsonc` takes precedence over the built-in's managed
+    # `opencode.json`, so this is the config OpenCode actually reads.
+    # models.prettyJson returns the full config as pretty-printed JSONC.
+    home.file.".config/opencode/opencode.jsonc" = lib.mkIf config.programs.opencode.enable {
+      text = models.prettyJson configValue;
+    };
   };
 }

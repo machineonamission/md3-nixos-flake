@@ -200,6 +200,9 @@
 
   programs.home-manager.enable = true;
   programs.direnv.enable = true;
+  # Built-in Home Manager module installs the CLI (package overridden by
+  # modules/opencode/opencode.nix to the node_modules-fixed build).
+  programs.opencode.enable = true;
   programs.git = {
     enable = true;
     settings.user.name = "Melody";

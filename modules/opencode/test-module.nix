@@ -37,7 +37,7 @@ let
     home = { };
   };
 
-  # When enabled, the module returns home.file.<path> = lib.genText {...}.
-  jsonc = module.home.file.".config/opencode/opencode.jsonc";
+  # When enabled, the module returns config.home.file.<path> = { text = ... }.
+  jsonc = module.config.home.file.".config/opencode/opencode.jsonc";
 in
 jsonc.text
