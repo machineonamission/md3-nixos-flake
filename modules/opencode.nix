@@ -9,37 +9,33 @@ let
   sys = pkgs.stdenv.hostPlatform.system;
   oc = inputs.opencode.packages.${sys};
 
-  # opencode v2.3.0's flake hardcodes a stale outputHash for
-  # opencode-node_modules (nix/hashes.json) that no longer matches this
-  # host's deterministic build, so `nixos-rebuild` fails the hash check on
-  # a fresh build. Two things fix it together:
-  #   * use-sandbox = false  -> bun install needs outbound network to
-  #     reach registry.npmjs.org; /etc/nix/nix.conf has sandbox = true,
-  #     which blocks it (DNSResolveFailed).
-  #   * outputHash = null    -> opencode's pinned hash is wrong, so let
-  #     Nix compute it from the actual build instead of verifying it.
-  # `packages.<sys>.node_modules` isn't exposed by the flake, but the
-  # internal derivation is threaded into the CLI package as an attribute,
-  # so reach it via `oc.opencode`.
-  # NOTE: after the first successful build this is cached; see hash below
-  # for the deterministic value to pin once confirmed.
-  nodeModules = oc.opencode.node_modules.overrideAttrs (_o: {
-    use-sandbox = false;
-    outputHash = null;
-  });
+  # opencode's flake builds `opencode-node_modules` via `bun install
+  # --frozen-lockfile` (see the flake's nix/node_modules.nix). That build relies
+  # on outbound network, which this host's local builds lack. However, NixOS
+  # builds are dispatched to the networked daemon, so the flake's own node_modules
+  # derivation builds fine remotely.
+  #
+  # The flake pins an outputHash in nix/hashes.json that no longer matches the
+  # content, so we pass the actual content hash to disable the check. It is
+  # deterministic across rebuilds:
+  #   sha256-PYcpyYP/i0e6ZIt27u1tFYbjU4Cl848w77dU1NiIEls=
+  nodeModules = pkgs.callPackage (inputs.opencode + "/nix/node_modules.nix") {
+    hash = "sha256-PYcpyYP/i0e6ZIt27u1tFYbjU4Cl848w77dU1NiIEls=";
+  };
 
-  # Thread the patched node_modules into both the CLI and the desktop GUI.
-  patched =
-    name:
-    (oc.${name}).overrideAttrs (_old: {
-      node_modules = nodeModules;
-    });
+  # Thread the remote-built node_modules into the CLI. The opencode package
+  # inherits (node_modules) version/src/meta.platforms, so no extra plumbing.
+  opencode = (oc.opencode).overrideAttrs (_old: {
+    node_modules = nodeModules;
+  });
 in
 {
-  # OpenCode CLI + Desktop GUI from pinned v2.3.0 flake input.
-  # node_modules hash workaround applied via `patched` above.
-  environment.systemPackages = [
-    (patched "opencode")
-    (patched "opencode-desktop")
-  ];
+  # OpenCode CLI from pinned v2.3.0 flake input.
+  #
+  # NOTE: `opencode-desktop` (the Electron GUI) is intentionally NOT included.
+  # Its build runs `electron-vite build`, which cannot resolve @opentui/solid's
+  # native preload offline (the filtered node_modules only keeps it in bun's
+  # `.bun` virtual store, and the daemon has no DNS to fetch it). Re-enable this
+  # once a networked build or a hoisted @opentui/solid is available.
+  environment.systemPackages = [ opencode ];
 }

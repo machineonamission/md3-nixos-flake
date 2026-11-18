@@ -10,8 +10,9 @@
 #   * FULL coders — general-purpose models (default reasoning + agentic). The
 #     defaults you want most of the time. Kept exactly as they were.
 #   * NARROW selectors — quick swaps to a specific architecture / case:
-#       moe        — a pure Mixture-of-Experts coder (35B-A3B), distinct from
-#                    the default full coder so you can A/B the architectures
+#       moe        — the default full coder (Tiel, 35B-A3B MoE). Same model as
+#                    `coder`; kept as its own selector so you can pin the MoE
+#                    architecture explicitly (it is the MoE you actually want).
 #       mixed      — a dense / hybrid coder (Qwen3.8-27B family)
 #       swap-back  — revert to the default full coder
 #
@@ -57,13 +58,13 @@ in
   };
 
   # ---- NARROW selectors (specific architecture / case) --------------------
-  # "moe" — pure Mixture-of-Experts coder, 35B-A3B. Distinct from the default
-  # full coder (Tiel) so you can compare the two architectures.
+  # "moe" — the default coder (Tiel, 35B-A3B MoE). Preferred over every other
+  # MoE — this is the MoE you actually want.
   "moe" = profile {
     name = "MoE Coder";
-    description = "Pure Mixture-of-Experts Coder GPU";
+    description = "Default full coder (Tiel, MoE) GPU";
     targets = [
-      "Ornith-1.5-35B-A3B"
+      "Tiel-Coder-35B-A3B"
     ];
   };
 

@@ -43,13 +43,6 @@
       ...
     }:
     {
-      packages.x86_64-linux.nodeModules =
-        (inputs.opencode.packages.x86_64-linux.opencode.node_modules).overrideAttrs
-          (_: {
-            use-sandbox = false;
-            outputHash = null;
-          });
-
       nixosConfigurations = {
         MelDesktop3 = nixpkgs-unstable.lib.nixosSystem {
           specialArgs =
