@@ -15,7 +15,7 @@ let
   # matches one Bun. No literal hash survives a version/Bun bump, so this stays
   # valid until upstream drops the aggregate hash (PR #59403).
   fixedNodeModules = opencodePkgs.opencode.node_modules.override {
-    hash = null;
+    hash = "sha256-At902X9Dxopt9Z2oHelDXwb9mgM9wPpI44UlQApLVYg=";
   };
 
   fixedOpencode = opencodePkgs.opencode.override {

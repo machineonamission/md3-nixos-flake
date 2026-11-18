@@ -12,7 +12,6 @@
 
     # if nix flake fails, see https://github.com/anomalyco/opencode/issues/59882 (fixed output hash incorrect for node modules, upstrea bug!)
     opencode.url = "github:anomalyco/opencode/v2.3.2";
-    opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
 
     # Home Manager
