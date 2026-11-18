@@ -13,10 +13,8 @@
     # if nix flake fails, see https://github.com/anomalyco/opencode/issues/59882 (fixed output hash incorrect for node modules, upstrea bug!)
     opencode.url = "github:anomalyco/opencode/v2.3.2";
 
-
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     # Flatpak (needed for Spotify — flatpak module not yet in nixpkgs 26.11)
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
@@ -25,7 +23,7 @@
     # note: updating pin causes FULL REBUILD FROM SOURCE. do sparingly.
     # note for llms: llama.cpp recently started NEW stable-ish semver versioning alongside build numbers. prefer latest of that unless pipeline build is needed.
     llama-cpp.url = "github:ggml-org/llama.cpp/v1.0.0"; # November 13, 2026
-    llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    # new note: removing nixpkgs follows might cause version bumps to pull from caches instead of happening all the time? so lol
   };
 
   outputs =
