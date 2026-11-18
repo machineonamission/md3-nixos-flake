@@ -40,6 +40,17 @@ let
   baseCmd =
     {
       hf,
+      # hfFile — when set, targets a SPECIFIC GGUF file in the HF repo via a
+      # separate `-hff <file>` flag. NOTE: the `:file` suffix on `-hf` is parsed
+      # as a QUANT TAG, not a filename, so `-hf repo:file` fails resolution.
+      # `-hff` makes llama.cpp match the exact file instead. Some repos (e.g.
+      # EfficientThink) also ship a `speculative/dflash2-*.gguf` speculative
+      # sidecar that llama.cpp's `-hf` auto-selection matches on the default
+      # quant pattern and loads as the PRIMARY model. A dflash sidecar is a DRAFT
+      # that needs a paired target context, so loading it as the model dies with
+      # "dflash requires ctx_other to be set". `-hff` points at the real model
+      # file, bypassing auto-selection entirely.
+      hfFile ? null,
       ctx ? 262144,
       np ? 1,
       fitt ? 1024,
@@ -47,6 +58,23 @@ let
       extra ? [ ],
     }:
     let
+      # `-hf <repo>` always; when a specific file is targeted, add `-hff <file>`
+      # so llama.cpp loads that exact GGUF (the :file suffix on -hf is a quant
+      # tag, not a filename, and would fail resolution otherwise).
+      hfFlags =
+        if hfFile != null then
+          [
+            "-hf"
+            hf
+            "-hff"
+            hfFile
+          ]
+        else
+          [
+            "-hf"
+            hf
+          ];
+
       # Image models load the small mmproj ON THE CPU. The Intel iGPU / Vulkan0
       # path garbles every image model, every time, so we never offload it. Text
       # models get --no-mmproj-offload.
@@ -60,10 +88,10 @@ let
         else
           [ "--no-mmproj-offload" ];
     in
-    [
+    hfFlags
+    ++ [
       "${llama-server}"
       "--port \${PORT}"
-      "-hf ${hf}"
       "--image-min-tokens 1024"
       "-c ${toString ctx}"
       "-b 2048"
@@ -217,6 +245,10 @@ let
     {
       name,
       hf,
+      # hfFile — see baseCmd; targets a specific GGUF file via `-hff` for repos
+      # that ship a speculative sidecar llama.cpp would otherwise pick as the
+      # primary model.
+      hfFile ? null,
       image ? false,
       ctx ? 262144,
       quant ? "APEX-I-NanoPlus",
@@ -233,6 +265,7 @@ let
         baseCmd {
           inherit
             hf
+            hfFile
             ctx
             np
             fitt
