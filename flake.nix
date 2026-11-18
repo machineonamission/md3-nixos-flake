@@ -14,7 +14,6 @@
     opencode.url = "github:anomalyco/opencode/v2.3.2";
     opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
-
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -69,7 +68,11 @@
             home-manager.nixosModules.home-manager
             (import "${nixos-flatpak}/modules/nixos.nix")
             {
-              home-manager.sharedModules = [ (import "${nixos-flatpak}/modules/home-manager.nix") ];
+              home-manager.sharedModules = [
+                (import "${nixos-flatpak}/modules/home-manager.nix")
+                # OpenCode editor + generated ~/.config/opencode/opencode.jsonc
+                ./modules/opencode/opencode.nix
+              ];
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.melody = import ./home/melody.nix;

@@ -2,3 +2,6 @@
 result
 .backups
 downloads/
+
+# OpenCode secrets (HA MCP token) — read by modules/opencode/opencode.nix
+modules/opencode/secrets.nix

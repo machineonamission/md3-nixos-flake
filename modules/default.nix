@@ -6,7 +6,6 @@
     ./services.nix
     ./packages.nix
     ./desktop.nix
-    ./opencode.nix
     ./llama
     ./portable.nix
     ./icon-fix.nix
