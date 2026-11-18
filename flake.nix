@@ -7,16 +7,13 @@
 
   inputs = {
     # Nixpkgs channels
-    # TEMP PIN (2026-10-21): roll nixpkgs-unstable back to fe13242281, where glibc is
-    # 2.44-25 and nvidia-smi works (rc=0). The current tip 02c087f bumped glibc to
-    # 2.44-57, which segfaults nvidia-smi (rc=139) on MelDesktop3. Revert this url to
-    # "github:NixOS/nixpkgs/nixos-unstable" and run `nix flake update nixpkgs-unstable`
-    # once upstream fixes glibc.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
-    # OpenCode v2 — bumped past 2.2.0; #59882 node_modules hash workaround applied in modules/opencode.nix
-    opencode.url = "github:anomalyco/opencode/v2.3.0";
+    # if nix flake fails, see https://github.com/anomalyco/opencode/issues/59882 (fixed output hash incorrect for node modules, upstrea bug!)
+    opencode.url = "github:anomalyco/opencode/v2.3.2";
+    opencode.inputs.nixpkgs.follows = "nixpkgs-unstable";
+
 
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
@@ -25,11 +22,10 @@
     # Flatpak (needed for Spotify — flatpak module not yet in nixpkgs 26.11)
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
 
-    # LLaMA C++ (CUDA build from source)
-    # note: updating pin causes full rebuild from source which takes forever
-    # but do update regularly
-    # b12211  is latest as of 2026-11-08 10:45 pm cst
-    llama-cpp.url = "github:ggml-org/llama.cpp/b12188"; # 2026-Nov-07.
+    # llama.cpp (llm inference backend)
+    # note: updating pin causes FULL REBUILD FROM SOURCE. do sparingly.
+    # note for llms: llama.cpp recently started NEW stable-ish semver versioning alongside build numbers. prefer latest of that unless pipeline build is needed.
+    llama-cpp.url = "github:ggml-org/llama.cpp/v1.0.0"; # November 13, 2026
     llama-cpp.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
