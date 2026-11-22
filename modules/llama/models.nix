@@ -15,6 +15,7 @@
   "Tiel-Coder-35B-A3B" = model {
     name = "Tiel Coder 35B A3B (NanoPlus)";
     hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
     image = true;
   };
 
@@ -27,6 +28,7 @@
   "Tiel-Coder-35B-A3B-MTP" = model {
     name = "Tiel Coder 35B A3B (NanoPlus, MTP)";
     hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
     quant = "APEX-I-NanoPlus";
     image = true;
     mtp =
@@ -40,6 +42,7 @@
   "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model {
     name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
     hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    hfFile = "Cyber-Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
     image = true;
   };
 
@@ -50,6 +53,7 @@
   "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP" = model {
     name = "Cyber Tiel 35B A3B (NanoPlus, MTP)";
     hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    hfFile = "Cyber-Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
     quant = "APEX-I-NanoPlus";
     image = true;
     mtp =
@@ -61,13 +65,12 @@
   };
 
   # ---- VAL-APEX-I NanoPlus V3 — Qwen3.8 27B dense hybrid -------------------
-  # Both ship a Q8_0 mmproj, so offload it to the Intel iGPU like the other
-  # image models. Safe (standard) vs abiterated (directional refusal-vector
-  # removal over Qwen3.8-27B).
   # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
+  # mmproj is kept on the CPU to avoid Intel iGPU Vulkan image corruption.
   "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
@@ -78,6 +81,7 @@
   "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B (Abliterated, VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
@@ -89,16 +93,13 @@
   # EfficientThink / Coder390 / Swift ship a separate mmproj (image); TTURBO is
   # a davidau-style twin-turbo vision model with the projector embedded in the
   # GGUF (no separate mmproj file), so --no-mmproj-offload. Arete is text-only.
-  # This repo ships BOTH a self-contained MTP head (blk.64.*) AND a separate
-  # speculative/dflash2-*.gguf sidecar. llama.cpp's -hf auto-detects the dflash2
-  # sidecar and tries to load it as the draft, but the dflash2 sidecar has no
-  # lm_head and needs ctx_other wired to the target context — v0.5.0's load path
-  # dies on "dflash requires ctx_other to be set" and the model never comes up.
-  # Requesting draft-mtp (selfMtp) makes llama.cpp use the integrated MTP head
-  # AND stop auto-picking the dflash sidecar, which fixes the crash.
+  # EfficientThink ships BOTH an integrated MTP head (blk.64.*) AND a separate
+  # speculative/dflash2 sidecar. Specifying `hfFile` directly loads the primary model
+  # while bypassing auto-discovery collisions.
   "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B EfficientThink (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
@@ -109,6 +110,7 @@
   "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Qwen3.8 27B TTURBO-709 Unc (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Qwen3.8-27B-TTURBO-709-Uncen.APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
@@ -118,6 +120,7 @@
   "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Arete 27B (VAL-APEX NanoPlus V3)";
     hf = "IsValorum/Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Arete-27B-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
   };
 
@@ -125,18 +128,18 @@
   "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Huihui Qwen3.8 27B Coder390 EfficientThink (VAL-APEX NanoPlus V3, Abliterated)";
     hf = "IsValorum/Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated.VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512; # higher fan-in for the self-contained MTP head
     extra = selfMtp;
   };
 
-  # Swift-1.5 is self-contained MTP (the MTP head lives in blk, like Qwen3.6-35B-
-  # A3B-MTP) — no separate draft file, so it uses the raw spec flags + higher
-  # fan-in for the head.
+  # Swift-1.5 is self-contained MTP (the MTP head lives in blk.64 inside the main GGUF).
   "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
     name = "Swift 1.5 Qwen3.8 27B (VAL-APEX NanoPlus V3, Uncensored)";
     hf = "IsValorum/Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF";
+    hfFile = "Swift-1.5-Qwen3.8-27B-Uncensored-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
     fitt = 512;
@@ -261,19 +264,19 @@
   };
 
   # ---- APEX-I-NanoPlus-V2.1: MTP with a SEPARATE draft head ---------------
-  # KAT documents the knob as --draft-max (vs Occamy's --spec-draft-n-max).
   "KAT-Coder-V2.5-Dev" = model {
     name = "KAT-Coder V2.5 Dev (V2.1)";
     hf = "IsValorum/KAT-Coder-V2.5-Dev-APEX-I-NanoPlus-V2.1-GGUF";
+    hfFile = "KAT-Coder-V2.5-Dev.APEX-I-NanoPlus-V2.1.gguf";
     quant = "APEX-I-NanoPlus-V2.1";
     # text-only; MTP uses a separate standalone draft head in the same repo,
-    # targeted with `repo:file` (llama.cpp HF file targeting).
+    # offloaded away from the main GPU.
     mtp =
       hf:
       mtpExtra {
         repo = hf;
         file = "mtp-KAT-Coder-V2.5-Dev-Q4_0.gguf";
-        draftMax = 2;
+        specDraftNMax = 2;
       };
   };
 
@@ -281,9 +284,10 @@
   "Occamy-1.0" = model {
     name = "Occamy 1.0 (NanoPlus)";
     hf = "IsValorum/Occamy-1.0-APEX-I-NanoPlus-GGUF";
+    hfFile = "Occamy-1.0.APEX-I-NanoPlus.gguf";
     image = true;
-    # MTP uses a separate standalone draft head in the same repo, targeted with
-    # `repo:file`. Occamy documents the knob as --spec-draft-n-max.
+    # MTP uses a separate standalone draft head in the same repo,
+    # offloaded away from the main GPU.
     mtp =
       hf:
       mtpExtra {

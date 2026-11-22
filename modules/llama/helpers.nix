@@ -30,23 +30,49 @@ let
   # ONCE. ~40 flags are identical across every model; only the knobs that
   # actually differ become arguments instead of being copied per model:
   #   hf            — remote HF GGUF repo (the weights)
+  #   hfFile        — remote HF GGUF filename (targeted with -hff)
   #   ctx           — context window in tokens (262144 default; LFM2.5 = 131072)
   #   np            — parallel slots (3 = pipelined, 1 = full context)
   #   fitt          — fan-in iterations (self-contained MTP head uses 512)
   #   offloadMMProj — true = force mmproj off the iGPU (see mmproj below)
+  #   specType      — speculative decoding type ("none" or "draft-mtp")
   #   extra         — raw flags, appended LAST so per-model flags sit next to
   #                   the model that needs them
   # Returns a LIST of flags so callers can concat before joining.
   baseCmd =
     {
       hf,
+      hfFile ? null,
       ctx ? 262144,
       np ? 1,
       fitt ? 1024,
       offloadMMProj ? false,
+      specType ? "none",
       extra ? [ ],
     }:
     let
+      # HuggingFace model file targeting:
+      # If hfFile is specified, pass -hff so llama.cpp loads that exact GGUF
+      # rather than auto-picking sidecars (such as dflash or mmproj) as the primary model.
+      hfFileFlags =
+        if hfFile != null then
+          [
+            "-hff"
+            hfFile
+          ]
+        else
+          [ ];
+
+      # Speculative decoding type:
+      specTypeFlags =
+        if specType != null && specType != "" then
+          [
+            "--spec-type"
+            specType
+          ]
+        else
+          [ ];
+
       # Image models load the small mmproj ON THE CPU. The Intel iGPU / Vulkan0
       # path garbles every image model, every time, so we never offload it. Text
       # models get --no-mmproj-offload.
@@ -64,6 +90,9 @@ let
       "${llama-server}"
       "--port \${PORT}"
       "-hf ${hf}"
+    ]
+    ++ hfFileFlags
+    ++ [
       "--image-min-tokens 1024"
       "-c ${toString ctx}"
       "-b 2048"
@@ -93,7 +122,9 @@ let
       "--jinja"
       "-ctk q8_0"
       "-ctv q8_0"
-      "--spec-type none"
+    ]
+    ++ specTypeFlags
+    ++ [
       "--host 0.0.0.0"
       "-np ${toString np}"
       "-cb"
@@ -137,63 +168,70 @@ let
     ]
     ++ extra;
 
-  # mtpExtra — speculative decode with a SEPARATE draft head. Occamy-1.0 and
-  # KAT-Coder-V2.5-Dev ship a standalone mtp-*.gguf in the SAME repo, so
-  # --spec-draft-model targets it with `repo:file` (llama.cpp HF targeting, the
-  # same syntax --hf uses). Returns the flag list for `model` to append.
+  # mtpExtra — speculative decode with a SEPARATE draft head.
+  # HuggingFace draft models are targeted via `--spec-draft-hf <repo>` and `--spec-draft-model <file>`.
+  # To avoid consuming any of the 16 GB VRAM on the main GPU (RTX 5070 Ti),
+  # `device` defaults to "Vulkan0" (Intel iGPU) or can be set to "none" (CPU).
+  # Returns the flag list for `model` to append.
   #   repo          — the model's HF repo (holds the draft head too)
   #   file          — the standalone draft .gguf filename
-  #   specDraftNMax — Occamy's documented knob (max draft tokens)
-  #   draftMax      — KAT's documented alias for the same knob
+  #   specDraftNMax — max draft tokens (default 2)
+  #   draftMax      — backwards-compatibility alias for specDraftNMax
+  #   device        — device for the draft model ("Vulkan0", "none"/"cpu", or "CUDA0")
   mtpExtra =
     {
       repo,
       file,
       specDraftNMax ? 2,
       draftMax ? null,
+      device ? "Vulkan0",
     }:
+    let
+      nMax = if draftMax != null then draftMax else specDraftNMax;
+      deviceFlags =
+        if device == "Vulkan0" || device == "vulkan" || device == "igpu" then
+          [
+            "--spec-draft-device"
+            "Vulkan0"
+            "--spec-draft-ngl"
+            "all"
+          ]
+        else if device == "none" || device == "cpu" then
+          [
+            "--spec-draft-device"
+            "none"
+            "--spec-draft-ngl"
+            "0"
+          ]
+        else if device == "cuda" || device == "CUDA0" then
+          [
+            "--spec-draft-device"
+            "CUDA0"
+            "--spec-draft-ngl"
+            "all"
+          ]
+        else
+          [
+            "--spec-draft-device"
+            device
+          ];
+    in
     [
-      "--spec-type"
-      "draft-mtp"
+      "--spec-draft-hf"
+      repo
       "--spec-draft-model"
-      "${repo}:${file}"
+      file
+      "--spec-draft-n-max"
+      (toString nMax)
     ]
-    ++ (
-      if draftMax != null then
-        [
-          "--draft-max"
-          (toString draftMax)
-        ]
-      else
-        [ ]
-    )
-    ++ (
-      if specDraftNMax != null then
-        [
-          "--spec-draft-n-max"
-          (toString specDraftNMax)
-        ]
-      else
-        [ ]
-    );
+    ++ deviceFlags;
 
   # selfMtp — speculative decode with a SELF-CONTAINED MTP head: the MTP block
   # lives INSIDE the main GGUF (blk.64.* on the Qwen3.8-27B dense-hybrid family,
   # blk.40 on Qwen3.6-35B-A3B-MTP) so there is NO separate --spec-draft-model.
-  # Returns the flag list for `extra`. Pair with `fitt = 512` (higher fan-in for
+  # Returns the draft tuning flags for `extra`. Pair with `fitt = 512` (higher fan-in for
   # the self-contained head) in the model literal.
-  #
-  # IMPORTANT: this also DISABLES the auto-detection of a repo's `speculative/`
-  # sidecar. llama.cpp's -hf resolution only looks for a dflash/dspark/eagle3
-  # sidecar when the requested spec type matches (arg.cpp: opts.download_dflash =
-  # spec_type_draft_dflash). Requesting draft-mtp here means a repo that ships
-  # BOTH an integrated MTP head AND a dflash2 sidecar (e.g. EfficientThink) loads
-  # the integrated MTP head and ignores the sidecar — which is what we want,
-  # because the dflash2 sidecar crashes v0.5.0's load path ("dflash requires
-  # ctx_other to be set").
   selfMtp = [
-    "--spec-type"
-    "draft-mtp"
     "--spec-draft-n-max"
     "2"
     "--spec-draft-p-min"
@@ -205,6 +243,7 @@ let
   # field that varies is an argument, so adding a model is just a literal.
   #   name          — shown in /v1/models
   #   hf            — remote HF GGUF repo (the weights)
+  #   hfFile        — remote HF GGUF filename (targeted with -hff)
   #   image         — true = multimodal (has mmproj); sets capabilities.in
   #   ctx           — context window in tokens (262144 default)
   #   quant         — quant label surfaced in metadata
@@ -213,10 +252,12 @@ let
   #   fitt          — fan-in iterations (self-contained MTP head uses 512)
   #   extra         — raw flags appended to the base command
   #   mtp           — optional fn repo -> flags for a separate MTP draft head
+  #   specType      — defaults to "draft-mtp" when mtp or selfMtp is used, else "none"
   model =
     {
       name,
       hf,
+      hfFile ? null,
       image ? false,
       ctx ? 262144,
       quant ? "APEX-I-NanoPlus",
@@ -225,6 +266,7 @@ let
       fitt ? 1024,
       extra ? [ ],
       mtp ? null,
+      specType ? (if (mtp != null || extra == selfMtp) then "draft-mtp" else "none"),
     }:
     {
       inherit name;
@@ -233,19 +275,16 @@ let
         baseCmd {
           inherit
             hf
+            hfFile
             ctx
             np
             fitt
             offloadMMProj
+            specType
             extra
             ;
         }
         ++ (if mtp != null then mtp hf else [ ])
-        # TO ADD FLAGS TO ONLY CODER MODELS
-        # ++ lib.concatStringsSep " " ([
-        #   ""
-        # ])
-
       );
       checkEndpoint = "/health";
 
@@ -272,7 +311,7 @@ let
         inherit quant;
         max_input_tokens = ctx;
         max_output_tokens = 32768;
-      };
+      } // lib.optionalAttrs (hfFile != null) { hf_file = hfFile; };
     };
 
   # titleModel — tiny iGPU title-gen model. These don't need the full APEX-I-
