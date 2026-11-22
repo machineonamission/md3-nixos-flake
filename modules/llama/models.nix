@@ -110,12 +110,11 @@
     #   * fitCtx = 131072 is the --fit-ctx floor: when the fit can't fit 256K it
     #     shrinks the CONTEXT itself down to 131K before it starts offloading
     #     layers — this is the autofit you wanted.
-    #   * kvqK = "q8_0" keeps the K cache at q8_0 (attention-stable); kvqV =
-    #     "q4_0" halves just the V half of the KV. All-q4 is known to destabilize
-    #     attention, so we split: stable keys, smaller values.
+    #   * kvq = "q8_0" (flat) — the only KV quant with a CUDA FlashAttention
+    #     kernel. Asymmetric q8-q4 falls back to f16 and is slow, so both K and V
+    #     stay q8_0.
     ctx = 262144;
-    kvqK = "q8_0";
-    kvqV = "q4_0";
+    kvq = "q8_0";
     fitCtx = 131072;
     fitt = 512; # higher fan-in for the self-contained MTP head
     extra = selfMtp; # self-contained MTP (speculative decode) — reuses main-model tensors, cheapest drafter on VRAM
