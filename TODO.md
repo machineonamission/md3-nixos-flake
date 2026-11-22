@@ -54,6 +54,15 @@ as far as i can tell, qwen-flash-next is like upwards of 100gb and has like ram/
 
 once opencode is nix and llama-swap is nix, what if i had a master model definiton that could update in opencode config and llama-swap without requiring discovery :3. i hate code duplication so much soooo much ill sooner do evil functional language hacks than copy paste yknow
 
+## question:
+
+```
+0.00.468.266 W srv  server_prepa: embeddings enabled with n_batch (2048) > n_ubatch (512)
+0.00.468.266 W srv  server_prepa: setting n_batch = n_ubatch = 512 to avoid assertion failure
+```
+
+is this an issue
+
 # opencode
 
 ## task: opencode config: jsonc -> nix

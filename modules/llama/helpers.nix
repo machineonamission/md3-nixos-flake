@@ -47,6 +47,8 @@ let
       np ? 1,
       fitt ? 1024,
       offloadMMProj ? false,
+      kvq ? "q8_0",
+      fitCtx ? 4096,
       specType ? "none",
       extra ? [ ],
     }:
@@ -69,6 +71,18 @@ let
           [
             "--spec-type"
             specType
+          ]
+        else
+          [ ];
+
+      # --fit-ctx floor for the memory fit. 4096 is llama.cpp's default (i.e.
+      # "don't let --fit shrink the context"), so only emit the flag when a model
+      # actually sets a higher floor — that keeps every other model's flags clean.
+      fitCtxFlags =
+        if fitCtx != 4096 then
+          [
+            "--fit-ctx"
+            (toString fitCtx)
           ]
         else
           [ ];
@@ -109,6 +123,9 @@ let
       "--repack"
       "--op-offload"
       "-fit on"
+    ]
+    ++ fitCtxFlags
+    ++ [
       "-fitt ${toString fitt}"
     ]
     ++ mmproj
@@ -120,8 +137,11 @@ let
       "--repeat-last-n 0"
       "-rea on"
       "--jinja"
-      "-ctk q8_0"
-      "-ctv q8_0"
+      # -ctk / -ctv set the KV-cache quant. q8_0 is the default; a model that
+      # needs a big context window (see ctx) can pass kvq = "q4_0" to halve the
+      # KV footprint (~8.7 → 4.3 GiB at 262144) so more layers stay on the GPU.
+      "-ctk ${kvq}"
+      "-ctv ${kvq}"
     ]
     ++ specTypeFlags
     ++ [
@@ -245,7 +265,13 @@ let
   #   hf            — remote HF GGUF repo (the weights)
   #   hfFile        — remote HF GGUF filename (targeted with -hff)
   #   image         — true = multimodal (has mmproj); sets capabilities.in
-  #   ctx           — context window in tokens (262144 default)
+  #   ctx           — context window in tokens (262144 default). Big contexts eat
+  #                   the KV cache; see kvq.
+  #   kvq           — KV-cache quant ("q8_0" default; "q4_0" halves it to fit a
+  #                   large context on a small GPU)
+  #   fitCtx        — --fit-ctx floor: when --fit shrinks to fit VRAM, the least
+  #                   context size it will go to (default 4096 = off). Set to keep
+  #                   a minimum window, e.g. 131072, instead of offloading layers
   #   quant         — quant label surfaced in metadata
   #   offloadMMProj — true = force mmproj off the iGPU
   #   np            — parallel slots (3 = pipelined, 1 = full context)
@@ -262,6 +288,8 @@ let
       ctx ? 262144,
       quant ? "APEX-I-NanoPlus",
       offloadMMProj ? false,
+      kvq ? "q8_0",
+      fitCtx ? 4096,
       np ? 1,
       fitt ? 1024,
       extra ? [ ],
@@ -277,6 +305,8 @@ let
             hf
             hfFile
             ctx
+            kvq
+            fitCtx
             np
             fitt
             offloadMMProj
@@ -311,7 +341,8 @@ let
         inherit quant;
         max_input_tokens = ctx;
         max_output_tokens = 32768;
-      } // lib.optionalAttrs (hfFile != null) { hf_file = hfFile; };
+      }
+      // lib.optionalAttrs (hfFile != null) { hf_file = hfFile; };
     };
 
   # titleModel — tiny iGPU title-gen model. These don't need the full APEX-I-

@@ -102,8 +102,21 @@
     hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
+    # OpenCode wants 131K+ tokens (native 256K ideal). The 11 GB weights + a
+    # 262144 q8_0 KV (~8.7 GiB) + compute/MTP don't fit in 16 GB, so the fit
+    # offloads ~40/66 layers to CPU → ~7 t/s, GPU idle. Two knobs to make the
+    # big context actually fit on the card:
+    #   * ctx = 262144 prefers native 256K.
+    #   * fitCtx = 131072 is the --fit-ctx floor: when the fit can't fit 256K it
+    #     shrinks the CONTEXT itself down to 131K before it starts offloading
+    #     layers — this is the autofit you wanted.
+    #   * kvq = "q4_0" halves the KV (8.7 → 4.3 GiB) so more layers stay on GPU
+    #     at that floor. -ngl 99 would OOM here, so leave it to the fit.
+    ctx = 262144;
+    kvq = "q4_0";
+    fitCtx = 131072;
     fitt = 512; # higher fan-in for the self-contained MTP head
-    extra = selfMtp;
+    extra = selfMtp; # self-contained MTP (speculative decode) — reuses main-model tensors, cheapest drafter on VRAM
   };
 
   # Ships a self-contained MTP head (blk.64.*, 15 tensors) in the main GGUF.
