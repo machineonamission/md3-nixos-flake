@@ -196,6 +196,8 @@
 
     eden
 
+    antigravity-ide
+
   ];
 
   programs.home-manager.enable = true;
