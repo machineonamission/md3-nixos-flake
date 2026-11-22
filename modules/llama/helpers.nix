@@ -47,7 +47,8 @@ let
       np ? 1,
       fitt ? 1024,
       offloadMMProj ? false,
-      kvq ? "q8_0",
+      kvqK ? "q8_0",
+      kvqV ? "q8_0",
       fitCtx ? 4096,
       specType ? "none",
       extra ? [ ],
@@ -137,11 +138,12 @@ let
       "--repeat-last-n 0"
       "-rea on"
       "--jinja"
-      # -ctk / -ctv set the KV-cache quant. q8_0 is the default; a model that
-      # needs a big context window (see ctx) can pass kvq = "q4_0" to halve the
-      # KV footprint (~8.7 → 4.3 GiB at 262144) so more layers stay on the GPU.
-      "-ctk ${kvq}"
-      "-ctv ${kvq}"
+      # -ctk / -ctv set the KV-cache quant. Default q8_0 for both. The K cache
+      # drives attention stability, so keep it at q8_0; the V cache is less
+      # sensitive, so kvqV = "q4_0" halves just the V half of the KV to save VRAM
+      # without the all-q4 instability (q4_0 on K is known to be unstable).
+      "-ctk ${kvqK}"
+      "-ctv ${kvqV}"
     ]
     ++ specTypeFlags
     ++ [
@@ -267,8 +269,10 @@ let
   #   image         — true = multimodal (has mmproj); sets capabilities.in
   #   ctx           — context window in tokens (262144 default). Big contexts eat
   #                   the KV cache; see kvq.
-  #   kvq           — KV-cache quant ("q8_0" default; "q4_0" halves it to fit a
-  #                   large context on a small GPU)
+  #   kvqK          — KV-cache quant for the K cache ("q8_0" default; keep q8_0,
+  #                   it drives attention stability)
+  #   kvqV          — KV-cache quant for the V cache ("q8_0" default; "q4_0"
+  #                   halves just the V half to save VRAM — safer than all-q4)
   #   fitCtx        — --fit-ctx floor: when --fit shrinks to fit VRAM, the least
   #                   context size it will go to (default 4096 = off). Set to keep
   #                   a minimum window, e.g. 131072, instead of offloading layers
@@ -288,7 +292,8 @@ let
       ctx ? 262144,
       quant ? "APEX-I-NanoPlus",
       offloadMMProj ? false,
-      kvq ? "q8_0",
+      kvqK ? "q8_0",
+      kvqV ? "q8_0",
       fitCtx ? 4096,
       np ? 1,
       fitt ? 1024,
@@ -305,7 +310,8 @@ let
             hf
             hfFile
             ctx
-            kvq
+            kvqK
+            kvqV
             fitCtx
             np
             fitt

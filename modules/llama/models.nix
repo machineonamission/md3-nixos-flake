@@ -12,7 +12,7 @@
 }:
 {
   # ---- main coding family (35B-A3B, image) --------------------------------
-  "Tiel-Coder-35B-A3B" = model {
+  "Tiel-Coder-35B-A3B" = model{ 
     name = "Tiel Coder 35B A3B (NanoPlus)";
     hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
     hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
@@ -110,10 +110,12 @@
     #   * fitCtx = 131072 is the --fit-ctx floor: when the fit can't fit 256K it
     #     shrinks the CONTEXT itself down to 131K before it starts offloading
     #     layers — this is the autofit you wanted.
-    #   * kvq = "q4_0" halves the KV (8.7 → 4.3 GiB) so more layers stay on GPU
-    #     at that floor. -ngl 99 would OOM here, so leave it to the fit.
+    #   * kvqK = "q8_0" keeps the K cache at q8_0 (attention-stable); kvqV =
+    #     "q4_0" halves just the V half of the KV. All-q4 is known to destabilize
+    #     attention, so we split: stable keys, smaller values.
     ctx = 262144;
-    kvq = "q4_0";
+    kvqK = "q8_0";
+    kvqV = "q4_0";
     fitCtx = 131072;
     fitt = 512; # higher fan-in for the self-contained MTP head
     extra = selfMtp; # self-contained MTP (speculative decode) — reuses main-model tensors, cheapest drafter on VRAM
