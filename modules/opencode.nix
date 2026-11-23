@@ -9,7 +9,8 @@ let
 in
 {
   environment.systemPackages = [
-    opencodePkgs.opencode
-    opencodePkgs.opencode-desktop
+    # opencodePkgs.opencode
+    # opencodePkgs.opencode-desktop
+    pkgs.opencode-desktop
   ];
 }

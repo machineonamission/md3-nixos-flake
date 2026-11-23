@@ -109,7 +109,7 @@ let
     ++ [
       "--image-min-tokens 1024"
       
-      "--load-mode auto"
+      "--load-mode none"
       "--kv-unified"
       "-cms 2048"
       "--poll 50"
