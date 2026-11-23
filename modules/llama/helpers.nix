@@ -47,7 +47,7 @@ let
       hfFile ? null,
       ctx ? 131072,
       np ? 1,
-      fitt ? 1024,
+      fitt ? 256,
       offloadMMProj ? false,
       kvq ? "q8_0",
       fitCtx ? ctx,
@@ -63,6 +63,7 @@ let
           [
             "-hff"
             hfFile
+            "--mmproj-auto"
           ]
         else
           [ ];
@@ -110,20 +111,16 @@ let
     ++ hfFileFlags
     ++ [
       "--image-min-tokens 1024"
-      "--load-mode none"
+      "--load-mode auto"
       "--kv-unified"
-      "-cms 2048"
       "-t 8"
       "-tb 16"
       "--poll 50"
       "-dev CUDA0"
-      "-sm none"
       "-ngl auto"
       "-mg 0"
       "-fa on"
-      "-kvo"
       "--repack"
-      "--op-offload"
       "--fit on"
     ]
     ++ fitCtxFlags
@@ -150,7 +147,7 @@ let
       "-np ${toString np}"
       "-cb"
       "--cache-prompt"
-      "--cache-ram 4096"
+      "--cache-ram -1"
       "--cache-idle-slots"
       "--slots"
       "--threads-http -1"
@@ -254,10 +251,10 @@ let
   # Returns the draft tuning flags for `extra`. Pair with `fitt = 512` (higher fan-in for
   # the self-contained head) in the model literal.
   selfMtp = [
+    "--spec-type" 
+    "draft-mtp"
     "--spec-draft-n-max"
-    "2"
-    "--spec-draft-p-min"
-    "0.6"
+    "4"
   ];
 
   # model — builds a full llama-swap entry for an APEX-I-NanoPlus model. Wraps
@@ -291,7 +288,7 @@ let
       kvq ? "q8_0",
       fitCtx ? ctx,
       np ? 1,
-      fitt ? 1024,
+      fitt ? 256,
       extra ? [ ],
       mtp ? null,
       specType ? (if (mtp != null || extra == selfMtp) then "draft-mtp" else "none"),

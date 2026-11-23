@@ -105,7 +105,6 @@
     ctx = 262144;
     kvq = "q8_0";
     fitCtx = 131072;
-    fitt = 512; # higher fan-in for the self-contained MTP head
     extra = selfMtp; # self-contained MTP (speculative decode) — reuses main-model tensors, cheapest drafter on VRAM
   };
 
