@@ -111,10 +111,14 @@ let
     ++ hfFileFlags
     ++ [
       "--image-min-tokens 1024"
-      "--load-mode mlock"
+      "--load-mode auto"
+      "--kv-unified"
       "-t 8"
       "-tb 16"
+      "--poll 50"
+      "-dev CUDA0"
       "-ngl auto"
+      "-mg 0"
       "-fa on"
       "--repack"
       "--fit on"
@@ -247,11 +251,41 @@ let
   # Returns the draft tuning flags for `extra`. Pair with `fitt = 512` (higher fan-in for
   # the self-contained head) in the model literal.
   selfMtp = [
-    # "--spec-type" 
-    # "draft-mtp"
-    # "--spec-draft-n-max"
-    # "4"
+    "--spec-draft-n-max"
+    "4"
   ];
+
+  # valV3 — the 27B dense-hybrid VAL-APEX-NanoPlus-V3 family. All share:
+  #   * quant = "VAL-APEX-I-NanoPlus-V3" (~11–13 GB, fits 16 GB GPUs)
+  #   * a self-contained MTP head (blk.64.*) => extra = selfMtp (speculative decode)
+  #   * fitt = 512 (higher fan-in for that head)
+  # Callers pass only the bits that differ (name / repo / image / context).
+  # Arete is text-only (no MTP head), so it stays a plain `model` literal.
+  valV3 =
+    {
+      name,
+      hf,
+      hfFile,
+      image ? true,
+      ctx ? 131072,
+      kvq ? "q8_0",
+      fitCtx ? ctx,
+      fitt ? 512,
+    }:
+    model {
+      inherit
+        name
+        hf
+        hfFile
+        image
+        ctx
+        kvq
+        fitCtx
+        fitt
+        ;
+      quant = "VAL-APEX-I-NanoPlus-V3";
+      extra = selfMtp;
+    };
 
   # model — builds a full llama-swap entry for an APEX-I-NanoPlus model. Wraps
   # baseCmd (the shared command) with per-model capabilities + metadata. Every
@@ -287,7 +321,7 @@ let
       fitt ? 256,
       extra ? [ ],
       mtp ? null,
-      specType ? null,
+      specType ? (if (mtp != null || extra == selfMtp) then "draft-mtp" else "none"),
     }:
     {
       inherit name;
@@ -391,6 +425,7 @@ in
     baseCmd
     mtpExtra
     selfMtp
+    valV3
     model
     titleModel
     ;

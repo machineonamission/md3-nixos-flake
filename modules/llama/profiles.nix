@@ -3,18 +3,25 @@
 # Runtime-selectable model-ID rewrites, switched via the UI/API (NOT the
 # reasoning-effort variants, which are declared in opencode.jsonc). Only ONE
 # profile may be active at a time; hooks.on_startup.profile picks the startup
-# one. `profile` fills in the shared `strategy = "pin"` so each entry is just
+# one. `profile` fills in the shared `strategy = "warm"` so each entry is just
 # its name / description / targets.
 #
+# WHAT A SELECTOR DOES
+#   Rewrites the active model ID to its target(s) at runtime. A selector with
+#   ONE target swaps to that model; a selector with MULTIPLE targets is a quick
+#   "pick one of these" swap. Every target MUST be a real model id defined in
+#   models.nix AND a member of a routing group (vram / igpu) in default.nix,
+#   otherwise llama-swap can't load it. This file therefore covers EVERY model
+#   in those two groups — nothing loadable is unreachable.
+#
 # TWO KINDS OF SELECTOR:
-#   * FULL coders — general-purpose models (default reasoning + agentic). The
-#     defaults you want most of the time. Kept exactly as they were.
+#   * FULL coders — general-purpose defaults you want most of the time.
 #   * NARROW selectors — quick swaps to a specific architecture / case:
-#       moe        — the default full coder (Tiel, 35B-A3B MoE). Same model as
-#                    `coder`; kept as its own selector so you can pin the MoE
-#                    architecture explicitly (it is the MoE you actually want).
-#       mixed      — a dense / hybrid coder (Qwen3.8-27B family)
-#       swap-back  — revert to the default full coder
+#       hybrid   — dense/hybrid coder (Qwen3.8-27B family)
+#       system   — + extended thinking (EfficientThink) for complex tasks
+#       moe      — the 35B-A3B MoE architecture (the one you actually want)
+#       moe-35b  — other 35B-A3B / 29B / Occamy MoE models
+#       mini     — small/fast text models (quick chat, low VRAM)
 #
 # Swap at runtime:
 #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"moe"}'
@@ -27,79 +34,132 @@ let
       targets,
     }:
     {
-      strategy = "warm"; # warm-start keeps the target's weights resident
+      # warm-start keeps the target's weights resident (fast swap) but lets idle
+      # models unload — better VRAM hygiene than pin, which never unloads.
+      strategy = "warm";
       inherit name description targets;
+    };
+  # Same shape, just shorter for the common one-target case.
+  one =
+    {
+      name,
+      description,
+      target,
+    }:
+    profile {
+      inherit name description;
+      targets = [ target ];
     };
 in
 {
-  # ---- FULL coders (general purpose) --------------------------------------
-  "coder" = profile {
+  # ---- FULL coders (general purpose, default reasoning + agentic) ----------
+  "coder" = one {
     name = "Coder";
     description = "Coder GPU Aligned";
-    targets = [
-      "Tiel-Coder-35B-A3B"
-    ];
+    target = "Tiel-Coder-35B-A3B";
   };
 
-  "coder-unsafe" = profile {
+  "coder-unsafe" = one {
     name = "Coder (Unsafe)";
     description = "Unsafe/Abliterated Coder GPU";
-    targets = [
-      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF"
-    ];
+    target = "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
   };
 
-  "coder-mtp" = profile {
+  # Cyber Tiel NanoPlus ships a SEPARATE draft head in the same repo — self-
+  # contained speculative decode. Swap to it at runtime:
+  #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"coder-mtp"}'
+  "coder-mtp" = one {
     name = "Coder (MTP)";
     description = "MTP Speculative Cyber Tiel GPU";
-    targets = [
-      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP"
-    ];
+    target = "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP";
   };
 
-  # ---- NARROW selectors (specific architecture / case) --------------------
+  # ---- MoE (35B-A3B) ------------------------------------------------------
   # "moe" — the default coder (Tiel, 35B-A3B MoE). Preferred over every other
-  # MoE — this is the MoE you actually want.
-  "moe" = profile {
+  # MoE — this is the MoE you actually want. Kept as its own selector so you can
+  # pin the MoE architecture explicitly.
+  "moe" = one {
     name = "MoE Coder";
     description = "Default full coder (Tiel, MoE) GPU";
+    target = "Tiel-Coder-35B-A3B";
+  };
+
+  # Other 35B-A3B / 29B / Occamy MoE coders (text + vision variants).
+  "moe-35b" = profile {
+    name = "MoE 35B";
+    description = "Other 35B-A3B / 29B / Occamy MoE GPU";
     targets = [
-      "Tiel-Coder-35B-A3B"
+      "Ornith-1.5-35B-A3B"
+      "MiniCPM-V-4.7-35B-A3B"
+      "MiniCPM-V-4.7-35B-A3B-MTP"
+      "MiniCPM-V-4.7-35B-A3B-Abliterated"
+      "Xing4.0-29B-A4B-APEX-I-NanoPlus-Abliterated-GGUF"
+      "Occamy-1.0-APEX-I-NanoPlus-V2.1-Abliterated-GGUF"
+      "Occamy-1.0"
+      "Qwen3.6-35B-A3B-MTP"
     ];
   };
 
-  # "mixed" — dense / hybrid coder, Qwen3.8-27B VAL-APEX-NanoPlus-V3.
-  "mixed" = profile {
+  # ---- Hybrid / dense (Qwen3.8-27B VAL-APEX-NanoPlus-V3) ------------------
+  # Dense-hybrid coders. "hybrid" is the base family; "system" adds extended
+  # thinking (EfficientThink); "system-uncen" is the uncensored twin-turbo.
+  "hybrid" = profile {
     name = "Hybrid Coder";
-    description = "Dense/Hybrid Coder GPU";
+    description = "Dense/Hybrid Qwen3.8-27B Coder GPU";
     targets = [
       "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
-      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
     ];
   };
 
-  # "system" — hybrid-dense + self-contained MTP, best for system / admin tasks.
-  # EfficientThink variant: extended internal thinking for complex commands and
-  # troubleshooting, still the same 27B dense family + integrated MTP drafter.
-  # Distinct from "mixed" (base hybrid dense) so you can swap to the thinking one.
-  "system" = profile {
+  # Extended internal thinking for complex commands / troubleshooting — still the
+  # same 27B dense family + integrated MTP drafter. Distinct from "hybrid".
+  "system" = one {
     name = "System (MTP Hybrid)";
     description = "Best Hybrid-Dense MTP Coder for System Tasks GPU";
+    target = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
+  };
+
+  # Uncensored twin-turbo vision hybrid (self-contained MTP head in the GGUF).
+  "system-uncen" = one {
+    name = "System (Unc Turbo)";
+    description = "Uncensored Twin-Turbo Hybrid MTP Coder GPU";
+    target = "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF";
+  };
+
+  # ---- Mini / fast (small text models, low VRAM) --------------------------
+  "mini" = profile {
+    name = "Mini Coder";
+    description = "Small/Fast Text Models GPU";
     targets = [
-      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "LFM2.5-24B-A2B"
+      "Qwen3.8-Flash-Coder"
+      "Qwen3.8-Flash-Next"
+      "KAT-Coder-V2.5-Dev"
+      "Sage-A1.5"
+      "Flint"
+      "Thomson-1.0-Small"
     ];
   };
 
-  # "swap-back" — revert to the default full coder (Tiel).
-  "swap-back" = profile {
+  # ---- Multimodal retrieval (search) --------------------------------------
+  "retrieval" = one {
+    name = "Retrieval";
+    description = "Multimodal Search Model GPU";
+    target = "T-Search";
+  };
+
+  # ---- Swap back to the default full coder (Tiel) -------------------------
+  "swap-back" = one {
     name = "Swap Back";
     description = "Revert to Default Full Coder GPU";
-    targets = [
-      "Tiel-Coder-35B-A3B"
-    ];
+    target = "Tiel-Coder-35B-A3B";
   };
 
-  # ---- title generation (iGPU) --------------------------------------------
+  # ---- Title generation (tiny iGPU models, Vulkan0) -----------------------
   "title" = profile {
     name = "Title";
     description = "Title Generation (No Reasoning)";

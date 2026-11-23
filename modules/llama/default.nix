@@ -88,7 +88,6 @@ in
           "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
           "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF"
           # MoE coders
-          "Tiel-Coder-35B-A3B-MTP"
           "Ornith-1.5-35B-A3B"
           "MiniCPM-V-4.7-35B-A3B"
           "MiniCPM-V-4.7-35B-A3B-MTP"
@@ -132,6 +131,7 @@ in
           titleModel
           mtpExtra
           selfMtp
+          valV3
           ;
       };
 
