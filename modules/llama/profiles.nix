@@ -27,7 +27,7 @@ let
       targets,
     }:
     {
-      strategy = "pin"; # warm-start keeps the target's weights resident
+      strategy = "warm"; # warm-start keeps the target's weights resident
       inherit name description targets;
     };
 in
@@ -73,8 +73,8 @@ in
     name = "Hybrid Coder";
     description = "Dense/Hybrid Coder GPU";
     targets = [
-      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
     ];
   };
 
