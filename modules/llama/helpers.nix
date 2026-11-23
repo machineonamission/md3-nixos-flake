@@ -48,7 +48,7 @@ let
       fitt ? 1024,
       offloadMMProj ? false,
       kvq ? "q8_0",
-      fitCtx ? 4096,
+      fitCtx,
       specType ? "none",
       extra ? [ ],
     }:
@@ -79,13 +79,13 @@ let
       # "don't let --fit shrink the context"), so only emit the flag when a model
       # actually sets a higher floor — that keeps every other model's flags clean.
       fitCtxFlags =
-        if fitCtx != 4096 then
+        if fitCtx != -1 then
           [
             "--fit-ctx"
             (toString fitCtx)
           ]
         else
-          [ ];
+          [ "-c ${toString ctx}" ];
 
       # Image models load the small mmproj ON THE CPU. The Intel iGPU / Vulkan0
       # path garbles every image model, every time, so we never offload it. Text
@@ -108,12 +108,9 @@ let
     ++ hfFileFlags
     ++ [
       "--image-min-tokens 1024"
-      "-c ${toString ctx}"
-      "-b 2048"
-      "-ub 512"
+      
       "--load-mode auto"
       "--kv-unified"
-      "-cram 16384"
       "-cms 2048"
       "--poll 50"
       "-ngl auto"
@@ -122,7 +119,7 @@ let
       "-kvo"
       "--repack"
       "--op-offload"
-      "-fit on"
+      "--fit on"
     ]
     ++ fitCtxFlags
     ++ [
@@ -134,14 +131,13 @@ let
       "--top-k 20"
       "--top-p 0.95"
       "--min-p 0.05"
-      "--repeat-last-n 0"
       "-rea on"
       "--jinja"
       # -ctk / -ctv set the KV-cache quant. Flat q8_0 for both K and V — this is
       # the only combo that ships a CUDA FlashAttention kernel. Asymmetric
       # (q8_0-q4_0) falls back to f16 conversion and is slow, so both stay q8_0.
-      "-ctk ${kvq}"
-      "-ctv ${kvq}"
+      "--cache-type-k ${kvq}"
+      "--cache-type-v ${kvq}"
     ]
     ++ specTypeFlags
     ++ [
@@ -149,7 +145,7 @@ let
       "-np ${toString np}"
       "-cb"
       "--cache-prompt"
-      "--cache-ram 32728"
+      "--cache-ram 16000"
       "--cache-idle-slots"
       "--slots"
       "--threads-http -1"
@@ -204,7 +200,7 @@ let
       file,
       specDraftNMax ? 2,
       draftMax ? null,
-      device ? "Vulkan0",
+      device ? "cuda",
     }:
     let
       nMax = if draftMax != null then draftMax else specDraftNMax;
@@ -289,7 +285,7 @@ let
       quant ? "APEX-I-NanoPlus",
       offloadMMProj ? false,
       kvq ? "q8_0",
-      fitCtx ? 4096,
+      fitCtx ? -1,
       np ? 1,
       fitt ? 1024,
       extra ? [ ],

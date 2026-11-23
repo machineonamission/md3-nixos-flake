@@ -73,6 +73,7 @@ in
     name = "Hybrid Coder";
     description = "Dense/Hybrid Coder GPU";
     targets = [
+      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
     ];
   };
