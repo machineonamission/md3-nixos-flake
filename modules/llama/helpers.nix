@@ -3,7 +3,7 @@
 # Import once and thread the result through:
 #   let llama = import ./helpers.nix { inherit lib pkgs-llama; };
 #
-#   baseCmd    — the ~40 shared APEX-I-NanoPlus flags (returns a FLAG LIST)
+#   baseCmd    — the shared APEX-I-NanoPlus flags (returns a FLAG LIST)
 #   mtpExtra   — separate-draft MTP flags (Occamy / KAT, `repo:file` draft head)
 #   model      — full llama-swap entry for a 35B/27B/24B APEX-I-NanoPlus model
 #   titleModel — tiny iGPU title-gen model (smaller flag set + ttl)
@@ -19,7 +19,7 @@ let
   # Unified CUDA + Vulkan llama-server. pkgs-llama was imported with cudaSupport
   # + vulkanSupport (flake.nix) so this ONE binary sees BOTH devices:
   #   CUDA   -> NVIDIA RTX 5070 Ti  (the fast card; holds the weights)
-  #   Vulkan -> Intel RPL-S iGPU    (mmproj is forced to the CPU — see mmproj)
+  #   Vulkan -> Intel RPL-S iGPU    (hosts title models + separate MTP draft heads)
   llama-cpp = pkgs-llama.llama-cpp.override {
     cudaSupport = true;
     vulkanSupport = true;
@@ -27,14 +27,16 @@ let
   llama-server = lib.getExe' llama-cpp "llama-server";
 
   # baseCmd — the shared command line for the APEX-I-NanoPlus family, written
-  # ONCE. ~40 flags are identical across every model; only the knobs that
-  # actually differ become arguments instead of being copied per model:
+  # ONCE. Only the knobs that actually differ become arguments instead of being
+  # copied per model:
   #   hf            — remote HF GGUF repo (the weights)
   #   hfFile        — remote HF GGUF filename (targeted with -hff)
-  #   ctx           — context window in tokens (262144 default; LFM2.5 = 131072)
-  #   np            — parallel slots (3 = pipelined, 1 = full context)
-  #   fitt          — fan-in iterations (self-contained MTP head uses 512)
-  #   offloadMMProj — true = force mmproj off the iGPU (see mmproj below)
+  #   ctx           — advertised context window in tokens (131072 default)
+  #   np            — parallel slots (1 = full context, avoids KV duplication)
+  #   fitt          — fit target margin in MiB (self-contained MTP head uses 512)
+  #   offloadMMProj — true = offload mmproj to Vulkan0; false = keep on CPU
+  #   fitCtx        — --fit-ctx floor (defaults to ctx; omits -c so --fit on can
+  #                   trim context down to this floor before offloading layers)
   #   specType      — speculative decoding type ("none" or "draft-mtp")
   #   extra         — raw flags, appended LAST so per-model flags sit next to
   #                   the model that needs them
@@ -43,12 +45,12 @@ let
     {
       hf,
       hfFile ? null,
-      ctx ? 262144,
+      ctx ? 131072,
       np ? 1,
       fitt ? 1024,
       offloadMMProj ? false,
       kvq ? "q8_0",
-      fitCtx,
+      fitCtx ? ctx,
       specType ? "none",
       extra ? [ ],
     }:
@@ -75,11 +77,11 @@ let
         else
           [ ];
 
-      # --fit-ctx floor for the memory fit. 4096 is llama.cpp's default (i.e.
-      # "don't let --fit shrink the context"), so only emit the flag when a model
-      # actually sets a higher floor — that keeps every other model's flags clean.
+      # Leave -c unset when fitCtx is active so `--fit on` adjusts context from
+      # the model's native max down to the `--fit-ctx` floor instead of forcing
+      # layer offloading onto system RAM.
       fitCtxFlags =
-        if fitCtx != -1 then
+        if fitCtx != null && fitCtx != -1 then
           [
             "--fit-ctx"
             (toString fitCtx)
@@ -108,11 +110,14 @@ let
     ++ hfFileFlags
     ++ [
       "--image-min-tokens 1024"
-      
       "--load-mode none"
       "--kv-unified"
       "-cms 2048"
+      "-t 8"
+      "-tb 16"
       "--poll 50"
+      "-dev CUDA0"
+      "-sm none"
       "-ngl auto"
       "-mg 0"
       "-fa on"
@@ -145,16 +150,14 @@ let
       "-np ${toString np}"
       "-cb"
       "--cache-prompt"
-      "--cache-ram 16000"
+      "--cache-ram 4096"
       "--cache-idle-slots"
       "--slots"
       "--threads-http -1"
       "--metrics"
       "--webui"
-      "--embedding"
       "-sps 0.5"
-      "-v"
-      "-lv 4"
+      "-lv 3"
       "--log-colors on"
       "--log-prefix"
       "--log-timestamps"
@@ -180,14 +183,13 @@ let
       "0.0"
       "--frequency-penalty"
       "0.0"
-
     ]
     ++ extra;
 
   # mtpExtra — speculative decode with a SEPARATE draft head.
   # HuggingFace draft models are targeted via `--spec-draft-hf <repo>` and `--spec-draft-model <file>`.
-  # To avoid consuming any of the 16 GB VRAM on the main GPU (RTX 5070 Ti),
-  # `device` defaults to "Vulkan0" (Intel iGPU) or can be set to "none" (CPU).
+  # Defaults to "Vulkan0" (Intel iGPU) with q8_0 draft KV cache so 100% of the
+  # RTX 5070 Ti's 16 GB VRAM stays reserved for the main coder.
   # Returns the flag list for `model` to append.
   #   repo          — the model's HF repo (holds the draft head too)
   #   file          — the standalone draft .gguf filename
@@ -200,7 +202,7 @@ let
       file,
       specDraftNMax ? 2,
       draftMax ? null,
-      device ? "cuda",
+      device ? "Vulkan0",
     }:
     let
       nMax = if draftMax != null then draftMax else specDraftNMax;
@@ -239,6 +241,10 @@ let
       file
       "--spec-draft-n-max"
       (toString nMax)
+      "-ctkd"
+      "q8_0"
+      "-ctvd"
+      "q8_0"
     ]
     ++ deviceFlags;
 
@@ -261,17 +267,15 @@ let
   #   hf            — remote HF GGUF repo (the weights)
   #   hfFile        — remote HF GGUF filename (targeted with -hff)
   #   image         — true = multimodal (has mmproj); sets capabilities.in
-  #   ctx           — context window in tokens (262144 default). Big contexts eat
-  #                   the KV cache; see kvq.
+  #   ctx           — advertised context window in tokens (131072 default)
   #   kvq           — KV-cache quant for both K and V ("q8_0" default; flat q8_0
   #                   is required — asymmetric q8-q4 has no FA kernel and is slow)
-  #   fitCtx        — --fit-ctx floor: when --fit shrinks to fit VRAM, the least
-  #                   context size it will go to (default 4096 = off). Set to keep
-  #                   a minimum window, e.g. 131072, instead of offloading layers
+  #   fitCtx        — --fit-ctx floor (defaults to ctx): minimum context size
+  #                   --fit will shrink to before offloading layers to CPU
   #   quant         — quant label surfaced in metadata
-  #   offloadMMProj — true = force mmproj off the iGPU
-  #   np            — parallel slots (3 = pipelined, 1 = full context)
-  #   fitt          — fan-in iterations (self-contained MTP head uses 512)
+  #   offloadMMProj — true = force mmproj onto Vulkan0
+  #   np            — parallel slots (1 = full context)
+  #   fitt          — fit target margin in MiB (self-contained MTP head uses 512)
   #   extra         — raw flags appended to the base command
   #   mtp           — optional fn repo -> flags for a separate MTP draft head
   #   specType      — defaults to "draft-mtp" when mtp or selfMtp is used, else "none"
@@ -281,11 +285,11 @@ let
       hf,
       hfFile ? null,
       image ? false,
-      ctx ? 262144,
+      ctx ? 131072,
       quant ? "APEX-I-NanoPlus",
       offloadMMProj ? false,
       kvq ? "q8_0",
-      fitCtx ? -1,
+      fitCtx ? ctx,
       np ? 1,
       fitt ? 1024,
       extra ? [ ],
@@ -370,6 +374,8 @@ let
         "--jinja"
         "--host 0.0.0.0"
         "-np 1"
+        "-t 4"
+        "-tb 8"
         "--no-warmup"
         "--device Vulkan0"
       ]);

@@ -70,7 +70,7 @@ in
       #
       # NOTE: image mmproj runs on the CPU (--no-mmproj-offload) per the baseCmd
       # decision in helpers.nix — the Vulkan0 path garbles every image model —
-      # so it is NOT an igGPU member. The iGPU group only holds the title models.
+      # so it is NOT an iGPU member. The iGPU group only holds the title models.
       routing.router.settings.groups.vram = {
         swap = true; # one coder at a time on the RTX
         exclusive = true; # running a coder unloads the other coders
@@ -152,6 +152,5 @@ in
 
   # The DynamicUser has no group memberships, so it can't open the NVIDIA
   # device nodes (root:video, 660) for CUDA even though PrivateDevices = false.
-  # Uncomment to enable CUDA device access:
   # systemd.services.llama-swap.supplementaryGroups = [ "video" ];
 }

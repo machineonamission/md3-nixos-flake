@@ -12,7 +12,7 @@
 }:
 {
   # ---- main coding family (35B-A3B, image) --------------------------------
-  "Tiel-Coder-35B-A3B" = model{ 
+  "Tiel-Coder-35B-A3B" = model {
     name = "Tiel Coder 35B A3B (NanoPlus)";
     hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
     hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
@@ -102,17 +102,6 @@
     hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
     quant = "VAL-APEX-I-NanoPlus-V3";
     image = true;
-    # OpenCode wants 131K+ tokens (native 256K ideal). The 11 GB weights + a
-    # 262144 q8_0 KV (~8.7 GiB) + compute/MTP don't fit in 16 GB, so the fit
-    # offloads ~40/66 layers to CPU → ~7 t/s, GPU idle. Two knobs to make the
-    # big context actually fit on the card:
-    #   * ctx = 262144 prefers native 256K.
-    #   * fitCtx = 131072 is the --fit-ctx floor: when the fit can't fit 256K it
-    #     shrinks the CONTEXT itself down to 131K before it starts offloading
-    #     layers — this is the autofit you wanted.
-    #   * kvq = "q8_0" (flat) — the only KV quant with a CUDA FlashAttention
-    #     kernel. Asymmetric q8-q4 falls back to f16 and is slow, so both K and V
-    #     stay q8_0.
     ctx = 262144;
     kvq = "q8_0";
     fitCtx = 131072;
@@ -246,6 +235,8 @@
     name = "Xing 4.0 29B A4B (APEX-I NanoPlus, Abliterated)";
     hf = "IsValorum/Xing4.0-29B-A4B-APEX-I-NanoPlus-Abliterated-GGUF";
     quant = "APEX-I-NanoPlus-Abliterated";
+    fitt = 512;
+    extra = selfMtp;
     # text-only; has the "mtp" tag but no separate draft file — self-contained
   };
 
