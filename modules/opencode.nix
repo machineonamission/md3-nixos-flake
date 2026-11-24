@@ -1,16 +1,14 @@
 {
+  config,
   pkgs,
+  lib,
   inputs,
   ...
 }:
-let
-  system = pkgs.stdenv.hostPlatform.system;
-  opencodePkgs = inputs.opencode.packages.${system};
-in
 {
   environment.systemPackages = [
-    # opencodePkgs.opencode
-    # opencodePkgs.opencode-desktop
-    pkgs.opencode-desktop
+    inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode
+    (inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode-desktop
+    )
   ];
 }
