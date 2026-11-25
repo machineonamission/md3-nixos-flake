@@ -112,7 +112,7 @@ let
     ++ [
       "--image-min-tokens 1024"
       "--load-mode auto"
-      "--kv-unified"
+      # "--kv-unified"
       "-t 8"
       "-tb 16"
       "--poll 50"
