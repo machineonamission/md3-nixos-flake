@@ -53,42 +53,48 @@ let
 in
 {
   # ---- FULL coders (general purpose, default reasoning + agentic) ----------
-  "coder" = one {
+  "coder" = profile {
     name = "Coder";
     description = "Coder GPU Aligned";
-    target = "Tiel-Coder-35B-A3B";
+    target = [
+      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Tiel-Coder-35B-A3B"
+      ];
   };
 
-  "coder-unsafe" = one {
+  "coder-unsafe" = profile {
     name = "Coder (Unsafe)";
     description = "Unsafe/Abliterated Coder GPU";
-    target = "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    targets = [
+      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF"
+      ];
   };
 
   # Cyber Tiel NanoPlus ships a SEPARATE draft head in the same repo — self-
   # contained speculative decode. Swap to it at runtime:
   #   curl -X PUT localhost:9930/api/profiles/active -d '{"name":"coder-mtp"}'
-  "coder-mtp" = one {
+  "coder-mtp" = profile {
     name = "Coder (MTP)";
     description = "MTP Speculative Cyber Tiel GPU";
-    target = "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP";
+    targets = [
+      "Tiel-Coder-35B-A3B-MTP"
+      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP"
+    ];
   };
 
   # ---- MoE (35B-A3B) ------------------------------------------------------
   # "moe" — the default coder (Tiel, 35B-A3B MoE). Preferred over every other
   # MoE — this is the MoE you actually want. Kept as its own selector so you can
   # pin the MoE architecture explicitly.
-  "moe" = one {
-    name = "MoE Coder";
-    description = "Default full coder (Tiel, MoE) GPU";
-    target = "Tiel-Coder-35B-A3B";
-  };
-
   # Other 35B-A3B / 29B / Occamy MoE coders (text + vision variants).
-  "moe-35b" = profile {
+  "moe" = profile {
     name = "MoE 35B";
     description = "Other 35B-A3B / 29B / Occamy MoE GPU";
     targets = [
+      "Tiel-Coder-35B-A3B"
+      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF"
+      "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP"
+      "Tiel-Coder-35B-A3B-MTP"
       "Ornith-1.5-35B-A3B"
       "MiniCPM-V-4.7-35B-A3B"
       "MiniCPM-V-4.7-35B-A3B-MTP"
@@ -107,57 +113,25 @@ in
     name = "Hybrid Coder";
     description = "Dense/Hybrid Qwen3.8-27B Coder GPU";
     targets = [
+      "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+      "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
+    ];
+  };
+
+    # ---- Hybrid / dense (Qwen3.8-27B VAL-APEX-NanoPlus-V3) ------------------
+  # Dense-hybrid coders. "hybrid" is the base family; "system" adds extended
+  # thinking (EfficientThink); "system-uncen" is the uncensored twin-turbo.
+  "hybrid-unsafe" = profile {
+    name = "Hybrid Coder";
+    description = "Dense/Hybrid Qwen3.8-27B Coder GPU";
+    targets = [
       "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF"
-      "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
     ];
   };
 
-  # Extended internal thinking for complex commands / troubleshooting — still the
-  # same 27B dense family + integrated MTP drafter. Distinct from "hybrid".
-  "system" = one {
-    name = "System (MTP Hybrid)";
-    description = "Best Hybrid-Dense MTP Coder for System Tasks GPU";
-    target = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
-  };
-
-  # Uncensored twin-turbo vision hybrid (self-contained MTP head in the GGUF).
-  "system-uncen" = one {
-    name = "System (Unc Turbo)";
-    description = "Uncensored Twin-Turbo Hybrid MTP Coder GPU";
-    target = "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF";
-  };
-
-  # ---- Mini / fast (small text models, low VRAM) --------------------------
-  "mini" = profile {
-    name = "Mini Coder";
-    description = "Small/Fast Text Models GPU";
-    targets = [
-      "LFM2.5-24B-A2B"
-      "Qwen3.8-Flash-Coder"
-      "Qwen3.8-Flash-Next"
-      "KAT-Coder-V2.5-Dev"
-      "Sage-A1.5"
-      "Flint"
-      "Thomson-1.0-Small"
-    ];
-  };
-
-  # ---- Multimodal retrieval (search) --------------------------------------
-  "retrieval" = one {
-    name = "Retrieval";
-    description = "Multimodal Search Model GPU";
-    target = "T-Search";
-  };
-
-  # ---- Swap back to the default full coder (Tiel) -------------------------
-  "swap-back" = one {
-    name = "Swap Back";
-    description = "Revert to Default Full Coder GPU";
-    target = "Tiel-Coder-35B-A3B";
-  };
 
   # ---- Title generation (tiny iGPU models, Vulkan0) -----------------------
   "title" = profile {
