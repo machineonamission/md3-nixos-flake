@@ -56,7 +56,7 @@ in
   "coder" = profile {
     name = "Coder";
     description = "Coder GPU Aligned";
-    target = [
+    targets = [
       "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
       "Tiel-Coder-35B-A3B"
       ];
