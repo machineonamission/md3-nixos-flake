@@ -54,8 +54,7 @@
     hfFile = "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3.gguf";
     # 27B dense hybrid won't fully fit in 16 GB VRAM; keep the KV cache small so
     # --fit puts VRAM into layers instead of context (generation speed).
-    ctx = 65536;
-    fitCtx = 65536;
+    fitCtx = 131072;
   };
 
   "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
@@ -80,9 +79,7 @@
     # eat the VRAM that should go to layers, forcing heavy CPU offload (slow gen).
     # 64K keeps the KV cache small so --fit puts VRAM into layers. (unverified —
     # trades max context for generation speed; the user prefers speed.)
-    ctx = 65536;
-    fitCtx = 65536;
-    fitt = 256; # default fan-in (EfficientThink's larger reasoning budget)
+    fitCtx = 131072;
   };
 
   "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
