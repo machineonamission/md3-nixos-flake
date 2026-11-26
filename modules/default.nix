@@ -12,6 +12,7 @@
   # infinite recursion; branching on a plain variable is safe.
   # ---------------------------------------------------------------------------
   imports = [
+    ./meldesktop.nix # shared values (intelIcd, mode)
     ./boot.nix # systemd-boot, kernel, kernel modules (all modes)
     ./base.nix # user, fonts, locale, openrgb, wivrn (all modes)
     ./hardware.nix # GPU drivers, bluetooth, NTFS, nix-ld, appimage
