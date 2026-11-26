@@ -25,8 +25,9 @@ let
   cfg = config.services.llama-swap;
 in
 {
+  # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
   environment.systemPackages = [
-    pkgs-llama.llama-cpp-cuda
+    llama.llama-cpp
     cfg.package
   ];
 

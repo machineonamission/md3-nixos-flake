@@ -132,7 +132,7 @@ let
   # this nixpkgs, so we point nix-ld at the exact driver the system boots with.
   # Adding it here makes NVML available system-wide to EVERY nix-ld app, not just
   # this one — so any future GPU-linked portable app finds it too.
-  nvidiaNvml = config.boot.kernelPackages.nvidiaPackages.latest;
+  nvidiaNvml = config.hardware.nvidia.package;
 
   # Extra GUI libraries that some desktop apps link but that are less common.
   # (libxcb-render/libxcb-shm/libxkbcommon-x11/libxkbregistry are bundled inside
