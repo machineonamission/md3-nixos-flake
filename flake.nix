@@ -3,13 +3,12 @@
 
   inputs = {
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
     # Declarative flatpaks (Spotify: pkgs.spotify was removed in 26.11).
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
-    # unused inputs below are removed in the next commit
-    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
-    opencode.url = "github:anomalyco/opencode/v2.4.1";
-    llama-cpp.url = "github:ggml-org/llama.cpp/v1.0.0";
   };
 
   outputs =
