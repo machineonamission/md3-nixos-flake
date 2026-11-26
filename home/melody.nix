@@ -192,6 +192,7 @@
     eden
 
     antigravity-ide
+     claude-code
 
   ];
 
