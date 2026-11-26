@@ -3,7 +3,8 @@
   home.username = "melody";
   home.homeDirectory = "/home/melody";
 
-  # User-level packages that were previously in environment.systemPackages
+  # User packages. Anything already in environment.systemPackages
+  # (modules/packages.nix) is deliberately not repeated here.
   home.packages = with pkgs; [
     # Dev tools
     android-studio
@@ -18,8 +19,6 @@
     clang
     clang-tools
     cloc
-    ccache
-    cloudflare-warp
     dotnet-sdk
     equibop
     ffmpeg
@@ -30,18 +29,15 @@
     # vendored zstd feature to actually build.
     # fnm.overrideAttrs (a: { nativeBuildInputs = a.nativeBuildInputs ++ [ pkgs.pkg-config pkgs.zstd ]; })
     # Note: gdb conflicts with cuda-merged (CUDA includes gdb syscalls)
-    gnupg
     keepassxc
     ninja
     nodejs
     #    obs-studio
     obsidian
-    pkg-config
     podman
     podman-desktop
     powershell
     prismlauncher
-    ripgrep
     rustc
     rustup
     # Note: clippy, cargo-fmt are managed by rustup toolchain — don't list separately (causes path conflicts)
@@ -50,10 +46,7 @@
     telegram-desktop
     teams-for-linux
     thunderbird
-    tree
-    unzip
     uv
-    wget
 
     # Browsers
     chromium
@@ -74,7 +67,6 @@
     kdePackages.kamoso
     kdePackages.kclock
     kdePackages.marknote
-    kdePackages.kdeconnect-kde
     krename
     kdePackages.filelight
     kdePackages.kio-admin
@@ -108,7 +100,6 @@
 
     # Utilities
     qdirstat
-    nano
     just
     rclone
     vulkan-loader
@@ -165,7 +156,6 @@
     yq
 
     # nix tooling
-    nixfmt
     nixd
     nil
     statix

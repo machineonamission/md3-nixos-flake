@@ -15,9 +15,6 @@
     nixfmt
     ccache
     gnupg
-    atkinson-hyperlegible-next
-    atkinson-hyperlegible-mono
-    noto-fonts
 
     openssl.dev
     pkg-config
@@ -59,5 +56,9 @@
   programs.steam.enable = true;
   programs.kdeconnect.enable = true;
 
-  users.users.melody.extraGroups = [ "adbusers" ];
+  fonts.packages = with pkgs; [
+    atkinson-hyperlegible-next
+    atkinson-hyperlegible-mono
+    noto-fonts
+  ];
 }
