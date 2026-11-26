@@ -24,7 +24,7 @@ let
   selectors = import ./profiles.nix;
   cfg = config.services.llama-swap;
 in
-{
+lib.mkIf config.meldesktop.llm {
   # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
   environment.systemPackages = [
     llama.llama-cpp

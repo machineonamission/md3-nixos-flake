@@ -71,9 +71,11 @@ lib.mkIf config.meldesktop.desktop {
     runOnIgpu
   ];
 
-  # Saver: every mesa-GL app renders on the iGPU (KWin uses the NVIDIA GL
-  # driver, so the displays are unaffected). Vulkan apps already go to the
-  # iGPU via VK_ICD_FILENAMES in configuration.nix. Undo per shell with
-  # `unset GALLIUM_DRIVER`.
-  environment.sessionVariables = lib.mkIf (mode == "saver") { GALLIUM_DRIVER = "iris"; };
+  # Saver: every Vulkan and mesa-GL app renders on the iGPU (KWin keeps the
+  # NVIDIA driver, so the displays are unaffected) = what `run-on-igpu` does,
+  # session-wide. Undo per shell: `unset VK_ICD_FILENAMES GALLIUM_DRIVER`.
+  environment.sessionVariables = lib.mkIf (mode == "saver") {
+    VK_ICD_FILENAMES = intelIcd;
+    GALLIUM_DRIVER = "iris";
+  };
 }

@@ -1,8 +1,41 @@
-# Headless mode: boot to a raw TTY (no desktop.nix stack), autologin as melody.
-# Remote access is SSH; llama-swap / opencode are reached over the network.
-{ config, lib, ... }:
+# Headless mode: monitors show a raw TTY (no desktop.nix stack), and every
+# service starts at boot without anyone logging in. Workflow:
+#   ssh melody@MelDesktop3
+#   sudo /run/current-system/specialisation/headless/bin/switch-to-configuration test
+#   ssh -L 4096:localhost:4096 melody@MelDesktop3   # then open http://localhost:4096
+# llama-swap (modules/llama) and openrgb (base.nix) are system services already.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 lib.mkIf (config.meldesktop.mode == "headless") {
   services.getty.autologinUser = "melody";
+
+  # opencode API + web UI, as melody (same config/sessions as interactive use).
+  # Bound to localhost: anyone who can reach it can run commands as melody, and
+  # the firewall is off. Reach it through the SSH tunnel above.
+  systemd.services.opencode = {
+    description = "opencode server";
+    wantedBy = [ "multi-user.target" ];
+    after = [
+      "network-online.target"
+      "llama-swap.service"
+    ];
+    wants = [ "network-online.target" ];
+    path = with pkgs; [
+      git
+      bash
+      coreutils
+    ];
+    serviceConfig = {
+      User = "melody";
+      WorkingDirectory = "/home/melody";
+      ExecStart = "${lib.getExe pkgs.opencode} serve --hostname 127.0.0.1 --port 4096";
+      Restart = "on-failure";
+    };
+  };
 
   # Make the NVIDIA driver usable for CUDA without Xorg. Two things don't
   # happen by default without services.xserver.enable:

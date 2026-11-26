@@ -1,11 +1,11 @@
 # Boot modes + shared values.
 #
 # ONE system, three systemd-boot entries (NixOS specialisations):
-#   normal   (default entry) — full desktop; dGPU drives the displays
-#   saver    "NixOS (saver)" — same desktop, but GUI apps render on the iGPU
-#            by default so the dGPU's VRAM stays free for llama-swap
-#   headless "NixOS (headless)" — no display manager / desktop / Xorg, raw TTY
-#            with autologin; the dGPU is free for CUDA
+#   normal   (default entry) — full desktop, everything on the dGPU, no local LLM
+#   saver    "NixOS (saver)" — same desktop, but userspace renders on the iGPU
+#            (Vulkan + GL) so the dGPU's VRAM stays free for llama-swap
+#   headless "NixOS (headless)" — raw TTY only; llama-swap, opencode serve,
+#            openrgb etc. start at boot. Meant for: ssh in, switch, use remotely
 #
 # Each specialisation re-evaluates the whole config with `meldesktop.mode`
 # changed, and modules switch on it with `lib.mkIf` (desktop.nix,
@@ -40,6 +40,12 @@ in
       type = lib.types.bool;
       default = mode != "headless";
       description = "Whether this mode has a graphical desktop.";
+    };
+    llm = lib.mkOption {
+      readOnly = true;
+      type = lib.types.bool;
+      default = mode != "normal";
+      description = "Whether local LLM serving (llama-swap) runs in this mode.";
     };
     intelIcd = lib.mkOption {
       readOnly = true;

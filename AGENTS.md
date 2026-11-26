@@ -29,7 +29,13 @@ scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch
 
 ## Boot modes = specialisations
 
-One system, three boot-menu entries: `normal` (default), `saver`, `headless`.
+One system, three boot-menu entries:
+- `normal` (default): full desktop, everything on the dGPU, no llama-swap.
+- `saver`: desktop + llama-swap; all userspace Vulkan/GL renders on the iGPU
+  (VK_ICD_FILENAMES + GALLIUM_DRIVER) to save VRAM.
+- `headless`: raw TTY, autologin; llama-swap, `opencode serve` (localhost:4096,
+  reach via `ssh -L 4096:localhost:4096`), openrgb all start at boot.
+
 `meldesktop.mode` is set per specialisation in modules/meldesktop.nix; modules
 branch on it with `lib.mkIf` (never in `imports`, that would recurse).
 `config.meldesktop.desktop` is the shorthand for "not headless".
