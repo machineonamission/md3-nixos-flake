@@ -1,17 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ osConfig, pkgs, ... }:
 {
   home.username = "melody";
   home.homeDirectory = "/home/melody";
-
-  # NOTE: the Spotify flatpak package lives in home/spotify.nix, which is
-  # imported only in desktop mode (see flake.nix). It is not declared here so
-  # that headless mode — where the flatpak home module is absent — does not
-  # reference the nonexistent `services.flatpak` option.
 
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [
@@ -192,7 +182,7 @@
     eden
 
     antigravity-ide
-     claude-code
+    claude-code
 
   ];
 
@@ -200,9 +190,7 @@
   programs.direnv.enable = true;
   programs.git = {
     enable = true;
-    settings.user.name = "Melody";
-    settings.user.email = "machineonamission@gmail.com";
-    # gh auth credential helper — hardcoded so it never gets reset
+    settings.user = (builtins.head osConfig.programs.git.config).user; # one identity, defined in modules/packages.nix
   };
   programs.bash = {
     enable = true;

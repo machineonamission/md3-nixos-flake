@@ -1,9 +1,5 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+# System-wide tools and programs (all modes).
+{ pkgs, ... }:
 {
   environment.localBinInPath = true;
 
@@ -44,7 +40,7 @@
     rar
   ];
 
-  # Programs: git + other system programs
+  # /etc/gitconfig (root + all users); home/melody.nix reuses this identity.
   programs.git = {
     enable = true;
     config = {
@@ -63,6 +59,5 @@
   programs.steam.enable = true;
   programs.kdeconnect.enable = true;
 
-  #programs.adb.enable = true;
   users.users.melody.extraGroups = [ "adbusers" ];
 }

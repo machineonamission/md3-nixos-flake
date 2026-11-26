@@ -1,22 +1,10 @@
+# Background services (all modes).
 {
-  config,
-  pkgs,
-  lib,
-  inputs,
-  ...
-}:
-{
-  # OneDrive sync (uni files) — user-level systemd service
-  services.onedrive.enable = true;
-
-  # Services
+  services.onedrive.enable = true; # uni files, user-level service
   services.printing.enable = true;
-  # NOTE: Flatpak is a desktop service — it is enabled in desktop.nix (normal /
-  # saver mode only), not here. In headless mode there is no desktop, so flatpak
-  # apps can't run and the service (plus its XDG Desktop Portals dependency) is
-  # skipped entirely.
+  services.linux-enable-ir-emitter.enable = true; # IR emitter for howdy's camera
 
-  # Audio (PipeWire replaces PulseAudio)
+  # Audio: PipeWire. (pipewire.jack is deprecated; use the `pw-jack` wrapper.)
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -24,10 +12,9 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # jack.enable = true; evaluation warning: `services.pipewire.jack.enable` is deprecated, because it introduces global impurity via `LD_LIBRARY_PATH`. Use the `pw-jack` wrapper from `pipewire.jack` where necessary instead.
   };
 
-  # Howdy facial recognition (boot-accessible login)
+  # Howdy face unlock
   services.howdy = {
     enable = true;
     control = "sufficient";
@@ -38,7 +25,7 @@
       };
       core = {
         detection_notice = true;
-        # Skip facial auth on SSH logins (otherwise Howdy tries face recognition, times out, and falls back to password)
+        # false = howdy is also tried in SSH sessions
         abort_if_ssh = false;
       };
     };
@@ -52,23 +39,12 @@
     sddm.howdy.enable = true;
     polkit-1.howdy.enable = true;
   };
-  systemd.services."polkit-agent-helper@" = {
-    serviceConfig = {
-      PrivateDevices = false;
-      DevicePolicy = "auto";
-      DeviceAllow = [ "" ];
-      ProtectHome = false;
-      RestrictAddressFamilies = [
-        "AF_UNIX"
-        "AF_NETLINK"
-      ];
-    };
+  # Let the sandboxed polkit helper reach the camera for howdy.
+  systemd.services."polkit-agent-helper@".serviceConfig = {
+    PrivateDevices = false;
+    DevicePolicy = "auto";
+    DeviceAllow = [ "" ];
+    ProtectHome = false;
+    RestrictAddressFamilies = [ "AF_UNIX" "AF_NETLINK" ];
   };
-
-  # IR emitter (e.g., for media center remote control)
-  services.linux-enable-ir-emitter.enable = true;
-
-  # https://wiki.nixos.org/wiki/Storage_optimization
-  # nix-store --optimise
-  nix.optimise.automatic = true;
 }

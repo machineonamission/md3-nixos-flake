@@ -201,8 +201,10 @@ in
     # --- Comprehensive nix-ld ---
     # Preload the full library set for every Nix app so AppImages and other
     # portable ELF binaries find their system libs globally via NIX_LD_LIBRARY_PATH.
-    programs.nix-ld.enable = true;
-    programs.nix-ld.libraries = nixLdLibraries;
+    programs.nix-ld = {
+      enable = true;
+      libraries = nixLdLibraries;
+    };
 
     # Wrapper for arbitrary portable apps: run-portable /path/to/binary
     environment.systemPackages = [ runPortable ];
