@@ -1,6 +1,11 @@
 # Desktop stack (normal + saver modes): SDDM + Plasma 6 + Xorg, flatpak, xrdp,
 # and the iGPU-offload helpers.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (config.meldesktop) intelIcd mode;
   plasma = pkgs.kdePackages.plasma-desktop;

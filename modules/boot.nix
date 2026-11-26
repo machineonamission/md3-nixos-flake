@@ -7,5 +7,8 @@
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Extra hardware sensors (temps) for OpenRGB / system monitor.
-  boot.kernelModules = [ "coretemp" "nct6683" ];
+  boot.kernelModules = [
+    "coretemp"
+    "nct6683"
+  ];
 }

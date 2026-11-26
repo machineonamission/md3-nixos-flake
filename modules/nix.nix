@@ -13,8 +13,14 @@
   };
 
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "melody" "root" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    trusted-users = [
+      "melody"
+      "root"
+    ];
     # i7-14700K = 28 threads; 24 jobs ≈ 85 % CPU. Builds run at nice 5, so the
     # desktop stays responsive.
     max-jobs = 24;

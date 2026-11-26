@@ -1,4 +1,4 @@
-#!bash
+#!/usr/bin/env bash
 
 # Deploy the NixOS config: sync the git repo into /etc/nixos, then rebuild.
 # Usage: bash scripts/deploy.sh

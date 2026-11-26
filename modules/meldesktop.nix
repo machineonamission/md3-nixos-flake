@@ -15,14 +15,23 @@
 #   sudo nixos-rebuild switch --flake .                           # all 3 entries, activates normal
 #   sudo nixos-rebuild test --flake . --specialisation saver      # live-switch, no reboot
 #   sudo bootctl set-oneshot nixos-generation-<N>-specialisation-headless.conf   # next boot only
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (config.meldesktop) mode;
 in
 {
   options.meldesktop = {
     mode = lib.mkOption {
-      type = lib.types.enum [ "normal" "saver" "headless" ];
+      type = lib.types.enum [
+        "normal"
+        "saver"
+        "headless"
+      ];
       default = "normal";
       description = "Boot mode. Set per specialisation; never set it by hand.";
     };

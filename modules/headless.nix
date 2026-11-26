@@ -12,5 +12,9 @@ lib.mkIf (config.meldesktop.mode == "headless") {
   #      true, so list them ourselves. NOT nvidia_drm: it would take the console
   #      away from the firmware framebuffer and blank the monitors; CUDA doesn't need it.
   services.xserver.videoDrivers = [ "nvidia" ];
-  boot.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" ];
+  boot.kernelModules = [
+    "nvidia"
+    "nvidia_modeset"
+    "nvidia_uvm"
+  ];
 }

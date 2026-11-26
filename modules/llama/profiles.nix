@@ -49,11 +49,13 @@ in
   ];
 
   # name/description were a copy-paste of "hybrid"; made distinct
-  hybrid-unsafe = profile "Hybrid Coder (Unsafe)" "Uncensored/Abliterated Dense/Hybrid Qwen3.8-27B Coder GPU" [
-    "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
-    "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF"
-    "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
-  ];
+  hybrid-unsafe =
+    profile "Hybrid Coder (Unsafe)" "Uncensored/Abliterated Dense/Hybrid Qwen3.8-27B Coder GPU"
+      [
+        "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
+        "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF"
+        "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF"
+      ];
 
   title = profile "Title" "Title Generation (No Reasoning)" [
     "Qwen3.5-2B"

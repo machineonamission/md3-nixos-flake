@@ -4,7 +4,12 @@
   users.users.melody = {
     isNormalUser = true;
     description = "Melody";
-    extraGroups = [ "networkmanager" "wheel" "i2c" "input" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "i2c"
+      "input"
+    ];
   };
 
   time.timeZone = "America/Chicago";
@@ -33,7 +38,10 @@
   users.users.openrgb = {
     isSystemUser = true;
     group = "openrgb";
-    extraGroups = [ "i2c" "input" ];
+    extraGroups = [
+      "i2c"
+      "input"
+    ];
   };
 
   # WiVRn: Quest 3 inside-out tracking. (Not SteamVR lighthouse: there are no

@@ -45,6 +45,9 @@
     DevicePolicy = "auto";
     DeviceAllow = [ "" ];
     ProtectHome = false;
-    RestrictAddressFamilies = [ "AF_UNIX" "AF_NETLINK" ];
+    RestrictAddressFamilies = [
+      "AF_UNIX"
+      "AF_NETLINK"
+    ];
   };
 }

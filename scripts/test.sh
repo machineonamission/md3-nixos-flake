@@ -1,12 +1,8 @@
-#!bash
-
+#!/usr/bin/env bash
+# Build the whole system (all 3 boot modes) into ./result without root.
+# Pass --update to bump flake.lock first.
 set -euo pipefail
-
-# cd to script parent dir, flake dir
-cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
-# this changes flake.lock
-nix flake update
-# add and commit
-git add -A
-git commit -m "test.sh"
-nixos-build test --flake .
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+if [ "${1:-}" = --update ]; then nix flake update; fi
+nixos-rebuild build --flake .#MelDesktop3
+ls result/specialisation
