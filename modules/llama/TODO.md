@@ -1,51 +1,19 @@
-# llama-swap TODO
+# llama-swap notes
 
-## Done
+## Open
+- [ ] Qwen3.8-27B family runs with `--fit-ctx 131072` (valV3 default). Earlier
+      notes proposed 65536 for speed; needs a real throughput test.
+- [ ] MiniCPM-V-4.7-35B-A3B-MTP: unverified that the dspark-* file works as a draft head.
+- [ ] Profiles don't cover every model (e.g. Flint, Sage, T-Search, KAT, Thomson,
+      LFM2.5, Flash-Coder/Next, Swift). Add selectors if you want them reachable that way.
+- [ ] Each llama-server binds `--host 0.0.0.0` on its swap port; llama-swap only
+      needs localhost, and the firewall is off, so those ports are open to the LAN
+      unauthenticated. Consider `--host 127.0.0.1` in helpers.nix.
+- [ ] `server_prepa: embeddings enabled with n_batch (2048) > n_ubatch (512)` warning:
+      harmless (llama.cpp clamps n_batch itself).
 
-- [x] **profiles.nix: all models in selectors, mode = warm**
-  - Rewrote `profiles.nix` into 13 selectors covering every loadable model
-    (26 vram + 2 igpu title). Verified: no dangling selector targets, no
-    loadable model without a selector, all `strategy = "warm"`.
-  - Removed the dangling `Tiel-Coder-35B-A3B-MTP` reference from the `vram`
-    routing group in `default.nix`.
-
-- [x] **Tiel coder MTP crash**
-  - Dropped the cross-quant `Tiel-Coder-35B-A3B-MTP` literal. It dies at load:
-    `context type MTP requested but model doesn't contain MTP layers` — the
-    IsValorum plain quant has `nextn_predict_layers=0` (no MTP head), so a
-    separate-draft `--spec-type draft-mtp` can't attach. Its own comment said
-    to drop it if it breaks. The plain `Tiel-Coder-35B-A3B` (the MoE coder) is
-    unaffected and works.
-
-- [x] **Broken selfMtp / specType WIP (was in the working tree)**
-  - The uncommitted WIP had `selfMtp` commented out and `specType ? null`, which
-    killed speculative decode on every self-contained-MTP model. Restored:
-    `selfMtp = ["--spec-draft-n-max" "4"]` (tuning flags only) and the
-    `specType` auto-detect so each model emits exactly one `--spec-type`
-    (verified via the built config — no duplicate flags).
-
-- [x] **Refactor: `valV3` helper**
-  - Extracted the 27B VAL-APEX-NanoPlus-V3 family into a `valV3` helper
-    (`helpers.nix`); 6 models became one-liners. Arete stays a plain `model`
-    (text-only, no MTP head). Output verified identical.
-
-## In progress / needs runtime verification (can't test — would evict from GPU)
-
-- [ ] **Qwen3.8-27B heavy CPU offload / slow generation**
-  - Tuned `ctx`/`fitCtx` = 65536 for `Qwen3.8-27B-VAL` and
-    `Qwen3.8-27B-EfficientThink` (was 262144 / 131072). Rationale: 27B dense
-    hybrid won't fully fit in 16 GB VRAM, so a huge KV cache starved the
-    layers of VRAM and forced heavy CPU offload. Smaller KV cache lets
-    `--fit` put VRAM into layers. **Trade-off: max context dropped from 256K to
-    64K.** Needs a real run to confirm the generation-speed win.
-
-## Notes / gotchas
-
-- **mlock warning** (`failed to mlock 1289093120-byte buffer`): only appears
-  with `--load-mode mlock`. The current config uses `--load-mode auto`, so this
-  is not a config bug. Don't add mlock unless you bump `ulimit -l` as root.
-- **Image mmproj runs on CPU** (`--no-mmproj-offload`): the Vulkan0 / iGPU path
-  garbles every image model. Never offload mmproj to Vulkan0.
-- **Can't hot-test models**: running llama-swap evicts the assistant from the
-  GPU. Verify flag changes via `nixos-rebuild build --flake .` + inspecting the
-  generated `*.yaml` cmd.
+## Gotchas
+- mmproj stays on the CPU (`--no-mmproj-offload`): Intel ANV Vulkan garbles clip_encode.
+- `--load-mode mlock` needs a raised `ulimit -l`; we use `auto`.
+- Can't hot-test models without evicting whatever is on the GPU. Verify flag changes with
+  `nixos-rebuild build --flake .` and `nix eval .#nixosConfigurations.MelDesktop3.config.services.llama-swap.settings.models.<id>.cmd`.
