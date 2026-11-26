@@ -20,6 +20,20 @@
     image = true;
   };
 
+    "Tiel-Coder-35B-A3B-MTP" = model {
+    name = "Tiel Coder 35B A3B (NanoPlus, MTP)";
+    hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
+    hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
+    quant = "APEX-I-NanoPlus";
+    image = true;
+    mtp =
+      hf:
+      mtpExtra {
+        repo = "peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF";
+        file = "mtp-Tiel-Coder-35B-A3B.gguf";
+      };
+  };
+
   "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model {
     name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
     hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
