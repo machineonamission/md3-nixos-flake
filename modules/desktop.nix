@@ -5,11 +5,11 @@
   ...
 }:
 let
-  # Your desktop/lock wallpaper, copied into the store so the pre-login
-  # sddm user can read it. The shipped breeze theme points at its own
-  # bundled wallpaper, so instead of shipping custom QML we reuse the
-  # shipped breeze theme and just write a fresh theme.conf pointing at
-  # AURORA.jpg (see ./sddm/aurora-theme.conf).
+  # Your desktop/lock wallpaper, copied into the store so the pre-login sddm
+  # user can read it. The shipped breeze theme points at its own bundled
+  # wallpaper, so instead of shipping custom QML we reuse the shipped breeze
+  # theme and just write a fresh theme.conf pointing at AURORA.jpg (see
+  # ./sddm/aurora-theme.conf).
   auroraTheme = pkgs.runCommand "sddm-aurora-theme" { } ''
     mkdir -p $out/share/sddm/themes
     cp -r ${pkgs.kdePackages.plasma-desktop}/share/sddm/themes/breeze $out/share/sddm/themes/aurora
@@ -20,91 +20,59 @@ let
   '';
 in
 {
-  # Desktop Environment
+  # ---------------------------------------------------------------------------
+  # The desktop stack — SDDM + Plasma 6 + Xorg. Imported ONLY in normal and
+  # saver mode (the flake's makeSystem helper decides; see flake.nix). Headless
+  # mode never imports this file, so it gets no display manager, no compositor,
+  # and no X server — just the raw TTY (see headless.nix).
+  #
+  # The user / fonts / locale / openrgb / wivrn that used to live here now live
+  # in base.nix (shared across all modes).
+  # ---------------------------------------------------------------------------
+
+  # Display manager (SDDM, Wayland session)
   services.displayManager.sddm = {
     enable = true;
     wayland.enable = true;
     theme = "aurora";
   };
-
-  # Put the theme where SDDM looks for it. system.path is a buildEnv over
-  # environment.systemPackages (ignoreCollisions = true), so adding the
-  # theme there merges its sw/ tree into /run/current-system/sw, where SDDM
-  # looks. (environment.etc goes to /etc and is never read by SDDM — that was
-  # the reason the first attempt didn't apply.)
-  environment.systemPackages = [ auroraTheme ];
-  services.desktopManager.plasma6.enable = true;
   services.displayManager.defaultSession = "plasma";
-  xdg.portal.enable = true;
 
-  # X Server keyboard layout (moved from hardware.nix after merging xserver.enable)
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-
-  # OpenRGB lighting (minimal — not all-plugins which is huge)
-  services.hardware.openrgb = {
-    enable = true;
-    package = pkgs.openrgb-with-all-plugins;
-    motherboard = "intel";
-  };
-
-  # Users & groups
-  users.groups.openrgb = { };
-  users.users.openrgb = {
-    isSystemUser = true;
-    group = "openrgb";
-    extraGroups = [
-      "i2c"
-      "input"
-    ];
-  };
-  users.users."melody" = {
-    isNormalUser = true;
-    description = "Melody";
-    extraGroups = [
-      "networkmanager"
-      "wheel"
-      "i2c"
-      "input"
-    ];
-  };
-
-  # Fonts
-  fonts.fontconfig = {
-    enable = true;
-    antialias = true;
-    hinting = {
-      enable = true;
-      style = "slight";
-    };
-    subpixel = {
-      rgba = "none";
-      lcdfilter = "default";
-    };
-  };
-
-  # Flatpak (for apps removed from nixpkgs, e.g. Spotify)
+  # Flatpak — desktop app manager (Spotify, etc.). A desktop service, so it is
+  # enabled only here (normal / saver mode). In headless mode there is no
+  # desktop, so flatpak apps can't run and the service is skipped.
   services.flatpak.enable = true;
 
-  # System locale/time
-  time.timeZone = "America/Chicago";
-  i18n.defaultLocale = "en_US.UTF-8";
+  # XDG Desktop Portals — required by Flatpak (asserted by the flatpak module)
+  # and used by desktop apps for file choosers, screenshots, screen sharing,
+  # etc. The portal backend (xdg-desktop-portal-kde) is provided by Plasma
+  # (below); in headless mode neither Flatpak nor Plasma is present.
+  xdg.portal.enable = true;
 
-  security.pam.services.melody.kwallet.enable = true;
+  # Desktop environment (Plasma 6)
+  services.desktopManager.plasma6.enable = true;
 
-  # services.monado = {
-  #   enable = false;
-  #   #defaultRuntime = true; # Register as default OpenXR runtime
-  # };
-  # Quest 3 uses inside-out tracking — there are no lighthouse base stations, so
-  # STEAMVR_LH_ENABLE points Monado at a nonexistent lighthouse driver. This is a
-  # documented Monado segfault cause (comp_renderer_draw -> compositor_layer_commit),
-  # exactly the crash you're seeing. Removed. WiVRn is the Quest 3 runtime here.
-  services.wivrn = {
+  # X Server — present only in desktop modes (this file is imported only in
+  # normal / saver). The NVIDIA driver renders to the framebuffer that
+  # hardware.nvidia.modesetting (in hardware.nix) exposes. In headless mode this
+  # whole file is absent, so there is no Xorg and the dGPU's modesetting
+  # framebuffer drives the raw TTY instead.
+  services.xserver = {
     enable = true;
-    openFirewall = true;
-    steam.importOXRRuntimes = true;
+    videoDrivers = [ "nvidia" ];
+    xkb = {
+      layout = "us";
+      variant = "";
+    };
   };
+
+  # Put the aurora theme where SDDM looks for it. system.path is a buildEnv over
+  # environment.systemPackages (ignoreCollisions = true), so adding the theme
+  # there merges its sw/ tree into /run/current-system/sw, where SDDM looks.
+  # (environment.etc goes to /etc and is never read by SDDM — that was the
+  # reason the first attempt didn't apply.)
+  environment.systemPackages = [ auroraTheme ];
+
+  # KDE wallet (per-user credential storage for the Plasma session)
+  security.pam.services.melody.kwallet.enable = true;
 }

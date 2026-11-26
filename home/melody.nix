@@ -8,15 +8,10 @@
   home.username = "melody";
   home.homeDirectory = "/home/melody";
 
-  # Spotify via flatpak (pkgs.spotify removed from nixpkgs 26.11)
-  #services.flatpak.enable = true;
-  # note, m2 may have hallucinated packageS plural?
-  services.flatpak.packages = [
-    {
-      appId = "com.spotify.Client";
-      origin = "flathub";
-    }
-  ];
+  # NOTE: the Spotify flatpak package lives in home/spotify.nix, which is
+  # imported only in desktop mode (see flake.nix). It is not declared here so
+  # that headless mode — where the flatpak home module is absent — does not
+  # reference the nonexistent `services.flatpak` option.
 
   # User-level packages that were previously in environment.systemPackages
   home.packages = with pkgs; [

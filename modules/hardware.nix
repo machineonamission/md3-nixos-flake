@@ -11,11 +11,14 @@
   services.fwupd.enable = true;
   hardware.cpu.intel.updateMicrocode = true;
 
-  # Graphics: Intel iGPU for media + NVIDIA RTX 5070 Ti for display
-  services.xserver = {
-    enable = true;
-    videoDrivers = [ "nvidia" ];
-  };
+  # Graphics: Intel iGPU for media + NVIDIA RTX 5070 Ti for display.
+  #
+  # NOTE: the X server (services.xserver) is NOT declared here — it lives in
+  # desktop.nix, which is imported only in normal / saver mode. In headless mode
+  # there is no Xorg: the dGPU drives the raw TTY via its modesetting framebuffer
+  # (a few MB of VRAM), and the rest of the card is free for CUDA compute.
+  # `hardware.nvidia.modesetting` below stays enabled in ALL modes: it is what
+  # lets the dGPU drive the console (TTY) without the proprietary driver.
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
@@ -44,7 +47,16 @@
       '';
     });
   };
-  hardware.nvidia-container-toolkit.enable = true;
+  # nvidia-container-toolkit — gives containers access to the NVIDIA GPU.
+  # The nvidia driver itself is present in ALL modes via hardware.nvidia
+  # (modesetting + the package override below). In desktop modes the driver
+  # assertion is satisfied by services.xserver.videoDrivers; in headless mode
+  # there is no X server, so we suppress the assertion — the driver is still
+  # there, it's just not exposed through Xorg.
+  hardware.nvidia-container-toolkit = {
+    enable = true;
+    suppressNvidiaDriverAssertion = true;
+  };
 
   # Bluetooth
   hardware.bluetooth = {

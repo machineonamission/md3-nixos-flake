@@ -11,7 +11,10 @@
 
   # Services
   services.printing.enable = true;
-  services.flatpak.enable = true;
+  # NOTE: Flatpak is a desktop service — it is enabled in desktop.nix (normal /
+  # saver mode only), not here. In headless mode there is no desktop, so flatpak
+  # apps can't run and the service (plus its XDG Desktop Portals dependency) is
+  # skipped entirely.
 
   # Audio (PipeWire replaces PulseAudio)
   services.pulseaudio.enable = false;
