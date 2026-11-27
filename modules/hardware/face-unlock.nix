@@ -12,8 +12,8 @@
       };
       core = {
         detection_notice = true;
-        # false = howdy is also tried in SSH sessions
-        abort_if_ssh = false;
+        # true = skip howdy when SSH_CONNECTION etc. is set (sudo over ssh)
+        abort_if_ssh = true;
       };
     };
   };
@@ -25,6 +25,8 @@
     kde.howdy.enable = true;
     sddm.howdy.enable = true;
     polkit-1.howdy.enable = true;
+    # No camera in front of a remote login.
+    sshd.howdy.enable = false;
   };
   # Let the sandboxed polkit helper reach the camera for howdy.
   systemd.services."polkit-agent-helper@".serviceConfig = {
