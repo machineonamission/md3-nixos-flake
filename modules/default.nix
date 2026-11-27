@@ -12,8 +12,8 @@
     ./packages.nix # system-wide tools and programs
     ./portable.nix # nix-ld library set + run-portable wrapper
     ./icon-fix.nix # /usr/share/{fonts,icons,themes} bind mounts
-    ./opencode.nix
-    ./llama # llama-swap
+    ./opencode # opencode packages + generated config (home-manager)
+    ./llama # llama-swap (models come from ./llm, which is data, not a module)
     ./desktop.nix # normal + saver only
     ./headless.nix # headless only
   ];

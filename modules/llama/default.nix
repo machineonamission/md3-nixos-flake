@@ -1,27 +1,24 @@
-# llama-swap — local LLM serving + model swapping (all boot modes).
+# llama-swap — local LLM serving + model swapping (saver + headless modes).
 #
-#   helpers.nix  — model / valV3 / titleModel builders (all the llama-server flags)
-#   models.nix   — the models, keyed by routing group (vram / igpu)
-#   profiles.nix — runtime-switchable selectors
+# The models and profiles themselves live in modules/llm (shared with the
+# OpenCode config); this module only turns them into llama-swap settings:
+#   helpers.nix — spec -> llama-swap entry (all the llama-server flags)
 #
 # `settings` is freeform YAML; the NixOS module runs `llama-swap -validate`
 # against config-schema.json at build time, so typos fail `nixos-rebuild build`.
 #
 # Don't use `aliases` / `setParamsByID`: aliases show up as separate /v1/models
 # rows in OpenCode, and setParamsByID overrides the reasoning_effort that
-# OpenCode's variants send. Variants are declared in the OpenCode config.
+# OpenCode's variants send. Variants are generated in modules/opencode.
 {
   config,
   lib,
-  pkgs,
   pkgs-llama,
   ...
 }:
 let
+  catalog = import ../llm { inherit lib; };
   llama = import ./helpers.nix { inherit lib pkgs-llama; };
-  groups = import ./models.nix { inherit (llama) model valV3 titleModel; };
-  models = groups.vram // groups.igpu;
-  selectors = import ./profiles.nix;
   cfg = config.services.llama-swap;
 in
 lib.mkIf config.meldesktop.llm {
@@ -33,10 +30,18 @@ lib.mkIf config.meldesktop.llm {
 
   services.llama-swap = {
     enable = true;
-    port = 9930;
+    inherit (catalog) port;
     listenAddress = "0.0.0.0"; # reachable from other devices on the LAN
     settings = {
-      inherit models selectors;
+      models = lib.mapAttrs (_: llama.entry) catalog.models;
+      selectors = lib.mapAttrs (_: p: {
+        inherit (p)
+          strategy
+          name
+          description
+          targets
+          ;
+      }) catalog.profiles;
       healthCheckTimeout = 500; # seconds; big models load slowly
       sendLoadingState = false; # don't inject loading updates into reasoning
       includeAliasesInList = false;
@@ -46,28 +51,18 @@ lib.mkIf config.meldesktop.llm {
         vram = {
           swap = true;
           exclusive = true;
-          members = lib.attrNames groups.vram;
+          members = lib.attrNames catalog.groups.vram;
         };
         # title models: always resident (the vram group can't unload them), coexist
         igpu = {
           swap = false;
           exclusive = false;
           persistent = true;
-          members = lib.attrNames groups.igpu;
+          members = lib.attrNames catalog.groups.igpu;
         };
       };
     };
   };
-
-  assertions = lib.concatLists (
-    lib.mapAttrsToList (
-      sel: s:
-      map (t: {
-        assertion = models ? ${t};
-        message = "llama-swap selector '${sel}' targets unknown model '${t}'";
-      }) s.targets
-    ) selectors
-  );
 
   # The service is a DynamicUser with a restricted environment, so point the
   # Vulkan loader straight at Intel's ICD (exposes the iGPU as Vulkan0; the RTX

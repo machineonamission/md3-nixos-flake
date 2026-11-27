@@ -5,7 +5,9 @@
       notes proposed 65536 for speed; needs a real throughput test.
 - [ ] MiniCPM-V-4.7-35B-A3B-MTP: unverified that the dspark-* file works as a draft head.
 - [ ] Profiles don't cover every model (e.g. Flint, Sage, T-Search, KAT, Thomson,
-      LFM2.5, Flash-Coder/Next, Swift). Add selectors if you want them reachable that way.
+      LFM2.5, Flash-Coder/Next). They're now tag queries (modules/llm/profiles.nix),
+      so give those models tags (family, moe/dense, unsafe) and they join automatically.
+      Unsure which of them are MoE, so they're untagged for now.
 - [ ] Each llama-server binds `--host 0.0.0.0` on its swap port; llama-swap only
       needs localhost, and the firewall is off, so those ports are open to the LAN
       unauthenticated. Consider `--host 127.0.0.1` in helpers.nix.

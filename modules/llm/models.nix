@@ -1,11 +1,14 @@
-# models.nix — every llama-swap model, grouped by the device it runs on.
+# models.nix — every model, grouped by the device it runs on.
 #
-# The top-level keys ARE the routing groups (see default.nix): a model's group
-# comes from where you put it, so models and groups can never drift apart.
-# The attribute name is the model id that OpenCode and profiles.nix refer to.
+# The top-level keys ARE the llama-swap routing groups (see llama/default.nix):
+# a model's group comes from where you put it, so models and groups can never
+# drift apart. The attribute name is the model id llama-swap serves, OpenCode
+# lists, and profiles.nix refers to.
 #
 # Add a model: drop a literal into the right group with only the knobs that
-# differ from the defaults documented in helpers.nix.
+# differ from the defaults documented in presets.nix, and give it `tags` so
+# the profiles in profiles.nix that match on them pick it up automatically.
+# Derived tags (kind, group, mtp, image, nanoplus) are added for you.
 {
   model,
   valV3,
@@ -17,6 +20,10 @@
     # ---- Tiel 35B-A3B MoE (the main coder) --------------------------------
     "Tiel-Coder-35B-A3B" = model {
       name = "Tiel Coder 35B A3B (NanoPlus)";
+      tags = [
+        "tiel"
+        "moe"
+      ];
       hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
       hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
       image = true;
@@ -25,6 +32,10 @@
     # The IsValorum quant has no MTP layers, so the draft head comes from another repo.
     "Tiel-Coder-35B-A3B-MTP" = model {
       name = "Tiel Coder 35B A3B (NanoPlus, MTP)";
+      tags = [
+        "tiel"
+        "moe"
+      ];
       hf = "IsValorum/Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
       hfFile = "Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
       image = true;
@@ -36,6 +47,11 @@
 
     "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF" = model {
       name = "CYBER (ABLITERATED) Tiel Coder 35B A3B";
+      tags = [
+        "tiel"
+        "moe"
+        "unsafe"
+      ];
       hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
       hfFile = "Cyber-Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
       image = true;
@@ -44,6 +60,11 @@
     # Same repo ships a separate 1.48 GB draft head.
     "Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF-MTP" = model {
       name = "Cyber Tiel 35B A3B (NanoPlus, MTP)";
+      tags = [
+        "tiel"
+        "moe"
+        "unsafe"
+      ];
       hf = "IsValorum/Cyber-Tiel-Coder-35B-A3B-APEX-I-NanoPlus-GGUF";
       hfFile = "Cyber-Tiel-Coder-35B-A3B.APEX-I-NanoPlus.gguf";
       image = true;
@@ -53,12 +74,17 @@
     # ---- Qwen3.8-27B VAL-APEX-I-NanoPlus-V3 (dense hybrid, embedded MTP) --
     "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B (VAL-APEX NanoPlus V3)";
+      tags = [ "qwen3.8" ];
       hf = "IsValorum/Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Qwen3.8-27B-VAL-APEX-I-NanoPlus-V3.gguf";
     };
 
     "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B (Abliterated, VAL-APEX NanoPlus V3)";
+      tags = [
+        "qwen3.8"
+        "unsafe"
+      ];
       hf = "IsValorum/Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3.gguf";
     };
@@ -66,6 +92,7 @@
     # Ships an embedded MTP head AND a dflash sidecar; hfFile avoids the collision.
     "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B EfficientThink (VAL-APEX NanoPlus V3)";
+      tags = [ "qwen3.8" ];
       hf = "IsValorum/Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
     };
@@ -73,18 +100,30 @@
     # Projector embedded in the GGUF (no separate mmproj file).
     "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B TTURBO-709 Unc (VAL-APEX NanoPlus V3)";
+      tags = [
+        "qwen3.8"
+        "unsafe"
+      ];
       hf = "IsValorum/Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Qwen3.8-27B-TTURBO-709-Uncen.APEX-I-NanoPlus-V3.gguf";
     };
 
     "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Huihui Qwen3.8 27B Coder390 EfficientThink (VAL-APEX NanoPlus V3, Abliterated)";
+      tags = [
+        "qwen3.8"
+        "unsafe"
+      ];
       hf = "IsValorum/Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated.VAL-APEX-I-NanoPlus-V3.gguf";
     };
 
     "Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Swift 1.5 Qwen3.8 27B (VAL-APEX NanoPlus V3, Uncensored)";
+      tags = [
+        "qwen3.8"
+        "unsafe"
+      ];
       hf = "IsValorum/Swift-1.5-Qwen3.8-27B-Uncensored-MTP-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Swift-1.5-Qwen3.8-27B-Uncensored-VAL-APEX-I-NanoPlus-V3.gguf";
     };
@@ -92,6 +131,10 @@
     # Same family but text-only with no MTP head, so a plain `model`.
     "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
       name = "Arete 27B (VAL-APEX NanoPlus V3)";
+      tags = [
+        "qwen3.8"
+        "dense"
+      ];
       hf = "IsValorum/Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Arete-27B-VAL-APEX-I-NanoPlus-V3.gguf";
     };
@@ -99,12 +142,14 @@
     # ---- APEX-I-NanoPlus: text ---------------------------------------------
     "LFM2.5-24B-A2B" = model {
       name = "LFM2.5 24B A2B (NanoPlus)";
+      tags = [ "lfm" ];
       hf = "IsValorum/LFM2.5-24B-A2B-APEX-I-NanoPlus-GGUF";
       ctx = 131072;
     };
 
     "Qwen3.8-Flash-Coder" = model {
       name = "Qwen3.8 Flash Coder (NanoPlus)";
+      tags = [ "qwen3.8-flash" ];
       hf = "IsValorum/Qwen3.8-Flash-Coder-APEX-I-NanoPlus-GGUF";
     };
 
@@ -112,6 +157,7 @@
     # single quant (clean for bare -hf) tuned for 12 GB VRAM / 32 GB RAM.
     "Qwen3.8-Flash-Next" = model {
       name = "Qwen3.8 Flash Next (L448, 16GB)";
+      tags = [ "qwen3.8-flash" ];
       hf = "zephel01/Qwen3.8-Flash-Next-12G32G-GGUF";
       quant = "L448 (zephel01, 16GB)";
     };
@@ -124,12 +170,17 @@
     # ---- APEX-I-NanoPlus: image --------------------------------------------
     "Ornith-1.5-35B-A3B" = model {
       name = "Ornith 1.5 35B A3B (NanoPlus)";
+      tags = [ "moe" ];
       hf = "IsValorum/Ornith-1.5-35B-A3B-APEX-I-NanoPlus-GGUF";
       image = true;
     };
 
     "MiniCPM-V-4.7-35B-A3B" = model {
       name = "MiniCPM-V 4.7 35B A3B (NanoPlus)";
+      tags = [
+        "minicpm"
+        "moe"
+      ];
       hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-APEX-I-NanoPlus-GGUF";
       image = true;
     };
@@ -137,6 +188,10 @@
     # UNVERIFIED: assumes the dspark-* file works as a MiniCPM draft head.
     "MiniCPM-V-4.7-35B-A3B-MTP" = model {
       name = "MiniCPM-V 4.7 35B A3B (NanoPlus, MTP)";
+      tags = [
+        "minicpm"
+        "moe"
+      ];
       hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-APEX-I-NanoPlus-GGUF";
       image = true;
       mtp.file = "dspark-MiniCPM-V-4_7-35B-A3B-Q4_K_M.gguf";
@@ -144,6 +199,11 @@
 
     "MiniCPM-V-4.7-35B-A3B-Abliterated" = model {
       name = "MiniCPM-V 4.7 35B A3B (Abliterated)";
+      tags = [
+        "minicpm"
+        "moe"
+        "unsafe"
+      ];
       hf = "IsValorum/MiniCPM-V-4.7-35B-A3B-Abliterated-APEX-I-NanoPlus-GGUF";
       image = true;
     };
@@ -157,6 +217,11 @@
     # ---- MoE with MTP --------------------------------------------------------
     "Xing4.0-29B-A4B-APEX-I-NanoPlus-Abliterated-GGUF" = model {
       name = "Xing 4.0 29B A4B (APEX-I NanoPlus, Abliterated)";
+      tags = [
+        "xing"
+        "moe"
+        "unsafe"
+      ];
       hf = "IsValorum/Xing4.0-29B-A4B-APEX-I-NanoPlus-Abliterated-GGUF";
       quant = "APEX-I-NanoPlus-Abliterated";
       mtp = "self";
@@ -165,6 +230,10 @@
     # Embedded MTP head in blk.40.
     "Qwen3.6-35B-A3B-MTP" = model {
       name = "Qwen3.6 35B A3B MTP (NanoPlus)";
+      tags = [
+        "qwen3.6"
+        "moe"
+      ];
       hf = "IsValorum/Qwen3.6-35B-A3B-MTP-APEX-I-NanoPlus-GGUF";
       image = true;
       mtp = "self";
@@ -172,6 +241,10 @@
 
     "Occamy-1.0" = model {
       name = "Occamy 1.0 (NanoPlus)";
+      tags = [
+        "occamy"
+        "moe"
+      ];
       hf = "IsValorum/Occamy-1.0-APEX-I-NanoPlus-GGUF";
       hfFile = "Occamy-1.0.APEX-I-NanoPlus.gguf";
       image = true;
@@ -180,6 +253,11 @@
 
     "Occamy-1.0-APEX-I-NanoPlus-V2.1-Abliterated-GGUF" = model {
       name = "Occamy 1.0 (V2.1 Abliterated)";
+      tags = [
+        "occamy"
+        "moe"
+        "unsafe"
+      ];
       hf = "IsValorum/Occamy-1.0-APEX-I-NanoPlus-V2.1-Abliterated-GGUF";
       quant = "APEX-I-NanoPlus-V2.1-Abliterated";
       image = true;
