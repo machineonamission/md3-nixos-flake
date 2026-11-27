@@ -1,14 +1,40 @@
 # general
 
-## unmerged git branches:
+## [DONE] consolidate branches + refactor (2026-11-26)
 
-`nofollow`: i think a mangled llama-swap config that doesnt launch so i revferted
+`main` is now the refactored config (force-pushed over the old broken main).
+Everything from `opencodedev` is in it. Layout + workflow: see AGENTS.md.
 
-`live`: branch off earlier nofollow, as of writing, live/deployed/tested working config
+- one system, 3 boot modes as specialisations (normal / saver / headless),
+  switch live with `mode saver|headless|normal`, at boot with `mode once|boot <mode>`
+- llama module rewritten (data-driven models, groups derived, selector targets asserted)
+- unused flake inputs dropped, one llama.cpp CUDA build instead of two
+- builds + evaluates; NOT yet booted / switched on real hardware
 
-`main`: very behind because opencode merge fucked up bad
+## next: deploy + test the modes on real hardware
 
-all of the WIP changes need to be collected into a proper config
+- [ ] `sudo nixos-rebuild switch --flake .`, check boot menu shows (saver) / (headless)
+- [ ] `mode saver`: llama-swap up, apps on iGPU (`nvidia-smi` shows little VRAM use)
+- [ ] `mode headless` over ssh: monitors go to TTY, llama-swap + `opencode serve`
+      (localhost:4096, `ssh -L 4096:localhost:4096`) + openrgb running
+- [ ] `mode normal`: llama-swap stopped, games on the dGPU
+- [ ] check `bootctl list` entry names match what `mode once/boot` expects
+- [ ] SubControl now needs `run-on-igpu` in normal mode (VK_ICD_FILENAMES is saver-only)
+
+## old branches
+
+`nofollow`, `live`, `opencodedev` etc. are superseded by main; delete when the
+new main is confirmed working.
+
+## needs a decision (found during the refactor, left as-is)
+
+- `system.stateVersion = "26.11"` was bumped by an LLM; home-manager says 26.05.
+  It should be the release this machine was INSTALLED with. Find it before touching.
+- howdy `abort_if_ssh = false`: comment said SSH logins should skip face auth (= true).
+- firewall is off + ssh password auth + every llama-server binds 0.0.0.0 (per-model
+  ports open to the LAN, no auth). `--host 127.0.0.1` in llama/helpers.nix would fix the latter.
+- `scripts/deploy.sh` rsyncs without `--delete`, so deleted files linger in /etc/nixos
+  (harmless, nothing imports them).
 
 # local llm inference (llama-swap)
 
@@ -50,32 +76,48 @@ as far as i can tell, qwen-flash-next is like upwards of 100gb and has like ram/
 - A separate draft model is only ~1.2–1.5 GB. The UHD 770 iGPU exposes ~23.8 GB of shared system memory, so the draft model fits entirely in `Vulkan0` with headroom.
 - Splitting a 1.5 GB draft model across both CPU and iGPU adds inter-layer PCIe/cross-engine sync overhead and slows down speculative drafting. Offloading 100% of the draft model to `Vulkan0` (or 100% to CPU) is optimal.
 
-## stretch: unified model list that maps to llama swap AND opencode
+## [DONE] unified model list that maps to llama swap AND opencode (2026-11-26)
 
-once opencode is nix and llama-swap is nix, what if i had a master model definiton that could update in opencode config and llama-swap without requiring discovery :3. i hate code duplication so much soooo much ill sooner do evil functional language hacks than copy paste yknow
+modules/llm is the one list (see AGENTS.md "Models: one list, two consumers").
+Profiles are tag queries now (`match = [ "dense" "!unsafe" ]`).
 
-## question:
+## [ANSWERED] `embeddings enabled with n_batch (2048) > n_ubatch (512)` warning
 
-```
-0.00.468.266 W srv  server_prepa: embeddings enabled with n_batch (2048) > n_ubatch (512)
-0.00.468.266 W srv  server_prepa: setting n_batch = n_ubatch = 512 to avoid assertion failure
-```
-
-is this an issue
+harmless: llama.cpp clamps n_batch to n_ubatch itself, that's what the second line says.
 
 # opencode
 
-## task: opencode config: jsonc -> nix
+## [DONE, NOT DEPLOYED] opencode config: jsonc -> nix (2026-11-26)
 
-opencode.jsonc present in ~/.config/opencode and mirrored in /home/melody/Projects/m2_opencode/opencode-m2-config/ . i want to move to a nix based folder in `./modules` (like how `./modules/llama` is structured). 
+modules/opencode generates ~/.config/opencode/opencode.json (see AGENTS.md "OpenCode config").
+Secrets already extracted to ~/.config/opencode/secrets/ (gitignored there).
 
-status: this was mostly completed, and merged into `main` branch, but the merge was mangled and the current HEAD of `main` does not build due to conflicts with the opencode flake bugs
+To deploy:
+- [ ] in ~/.config/opencode: `git rm opencode.jsonc` (it would override the
+      generated opencode.json) and add `opencode.json` to its .gitignore; commit
+- [ ] switch, then `systemctl --user restart` / restart opencode + desktop app
+- [ ] `opencode debug config --standalone` shows the generated file as the source
+- [ ] pick `llama-swap/coder#high` etc. in the UI; check HA MCP connects
+- [ ] ROTATE the HA long-lived token + ha-mcp webhook id: both were in plaintext
+      in NIXOS commits f8cde1c/f40c547 (public repo; not on any remote branch now,
+      but they may have been pushed before) and in the opencode repo history
+- [ ] old-opencode-nix branch (local, rescued ec3f043) contains the token: never push it,
+      delete once this is confirmed working
+
+Permissions rewritten for v2 semantics (modules/opencode/permissions.nix header):
+`./*` matched nothing (Isolated could read the project!), agent `shell * allow`
+cancelled the global guards, Builder/Admin sudo + switch/reboot asks were dead.
+- [ ] after deploy: sanity-check prompts per agent (`opencode debug agents --standalone`
+      shows each agent's final ordered rule list)
+- [ ] the old `swap-back` model was dropped: llama-swap has no such id (it would 404)
 
 ## opencode nix flake issues
 
 the opencode nix in THIS repo works (branch `live`). there is [an upstream bug](https://github.com/anomalyco/opencode/issues/59882) of them incorrectly generating fixed output nix hashes from node_modules, so the workaround in `./modules/opencode.nix` is the best solution until the issue is closed upstream (open at time of writing, 2026-11-22 2pm)
 
-status: upstream still has issue, but local nix workaround works for the time being
+status: now using nixpkgs' `pkgs.opencode` (modules/opencode.nix), so the upstream
+flake + workaround are unused (flake input removed). Old workaround:
+`git show 26d3a9e^:"modules/opencode copy.nix"`.
 
 # user experience
 
