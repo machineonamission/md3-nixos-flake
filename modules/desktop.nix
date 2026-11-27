@@ -7,7 +7,7 @@
   ...
 }:
 let
-  inherit (config.meldesktop) intelIcd mode;
+  inherit (config.meldesktop) igpuEnv mode;
   plasma = pkgs.kdePackages.plasma-desktop;
 
   # Stock breeze SDDM theme with our wallpaper. SDDM reads themes from
@@ -21,21 +21,19 @@ let
     chmod a+r $out/share/sddm/themes/aurora/wallpaper.jpg
   '';
 
-  # Render one app on the Intel iGPU. The compositor stays on the dGPU (it
-  # drives the displays); the app's frames cross PCIe as dmabufs.
+  # Keep one app off the dGPU (normal mode; in saver everything already is).
+  # See meldesktop.igpuEnv for what that means per app type.
   #   run-on-igpu firefox
   runOnIgpu = pkgs.writeShellScriptBin "run-on-igpu" ''
     #!/bin/bash
     set -euo pipefail
     if [ $# -eq 0 ]; then
       echo "Usage: run-on-igpu <command> [args...]" >&2
-      echo "Launches a GUI app with the Intel iGPU forced for rendering." >&2
-      echo "The compositor stays on the NVIDIA dGPU; only the app's own" >&2
-      echo "rendering is offloaded, freeing dGPU VRAM for llama-swap." >&2
+      echo "Launches an app off the NVIDIA dGPU: Vulkan/GL on the Intel iGPU," >&2
+      echo "Chromium/Electron in software. The compositor stays on the dGPU." >&2
       exit 1
     fi
-    export VK_ICD_FILENAMES=${intelIcd}
-    export GALLIUM_DRIVER=iris
+    ${lib.concatStrings (lib.mapAttrsToList (k: v: "export ${k}=${lib.escapeShellArg v}\n") igpuEnv)}
     exec "$@"
   '';
 in
@@ -71,11 +69,20 @@ lib.mkIf config.meldesktop.desktop {
     runOnIgpu
   ];
 
-  # Saver: every Vulkan and mesa-GL app renders on the iGPU (KWin keeps the
-  # NVIDIA driver, so the displays are unaffected) = what `run-on-igpu` does,
-  # session-wide. Undo per shell: `unset VK_ICD_FILENAMES GALLIUM_DRIVER`.
-  environment.sessionVariables = lib.mkIf (mode == "saver") {
-    VK_ICD_FILENAMES = intelIcd;
-    GALLIUM_DRIVER = "iris";
+  # Saver: = `run-on-igpu` for the whole session, read at LOGIN (after a live
+  # `mode saver`, log out and back in). Undo per shell:
+  # `unset VK_ICD_FILENAMES __EGL_VENDOR_LIBRARY_FILENAMES __GLX_VENDOR_LIBRARY_NAME DRI_PRIME`
+  environment.sessionVariables = lib.mkIf (mode == "saver") igpuEnv;
+
+  # ...except KWin: it drives the monitors, which hang off the NVIDIA card, so
+  # it must keep NVIDIA's EGL. (Xwayland is its child and inherits this.)
+  # A raw `units` drop-in, not `systemd.user.services`: that one would also
+  # override KWin's PATH with NixOS's minimal service PATH.
+  systemd.user.units."plasma-kwin_wayland.service" = lib.mkIf (mode == "saver") {
+    overrideStrategy = "asDropin";
+    text = ''
+      [Service]
+      UnsetEnvironment=${toString (lib.attrNames igpuEnv)}
+    '';
   };
 }

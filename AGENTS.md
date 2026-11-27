@@ -37,7 +37,8 @@ scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch
 One system, three boot-menu entries:
 - `normal` (default): full desktop, everything on the dGPU, no llama-swap.
 - `saver`: desktop + llama-swap; all userspace Vulkan/GL renders on the iGPU
-  (VK_ICD_FILENAMES + GALLIUM_DRIVER) to save VRAM.
+  (meldesktop.igpuEnv: Vulkan/GL on the iGPU, Electron in software; KWin exempt)
+  to save VRAM. Takes effect at login: after a live `mode saver`, log out + in.
 - `headless`: raw TTY, autologin; llama-swap, `opencode serve` (localhost:4096,
   reach via `ssh -L 4096:localhost:4096`), openrgb all start at boot.
 
