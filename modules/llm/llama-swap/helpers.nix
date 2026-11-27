@@ -128,8 +128,70 @@ let
     };
     capabilities = capabilities s;
   };
+  # Always-resident CPU voice model (Home Assistant). No ttl: the `cpu` routing
+  # group is persistent and llama-swap preloads it (hooks.on_startup.preload).
+  # Benchmarked 2026-11-27 on the real HA Assist request (~7.8k-token prompt,
+  # 50 tools): the iGPU is ~2x SLOWER than the CPU here (Qwen3.5-4B: Vulkan0
+  # 48 t/s prefill / 4.6 t/s gen vs CPU 143 / 11), and it is busy rendering the
+  # desktop/video in saver mode anyway, so this deliberately avoids it.
+  # Pinning to the P-cores is worth ~20% generation speed. ngram-mod speculation
+  # is lossless and ~5% faster (tool-call JSON repeats names from the prompt); a
+  # Qwen3.5-0.8B draft model was slower (≈0% acceptance), no MTP head in the GGUF.
+  #
+  # device = "cuda": the same model fully on the RTX, for when the GPU is otherwise
+  # idle (it is preloaded into the vram group; any coder evicts it).
+  # -rea off on BOTH: HA sends enable_thinking=true + reasoning_effort=low so that a
+  # warm coder (Tiel is reasoning-mandatory and stops calling tools without it)
+  # thinks a little; these voice models must ignore that and stay non-thinking.
+  voice = s: {
+    inherit (s) name;
+    cmd = toString (
+      lib.optionals (s.device == "cpu") [
+        (lib.getExe' pkgs-llama.util-linux "taskset")
+        "-c ${s.cpus}"
+      ]
+      ++ [
+        server
+        "--port \${PORT}"
+        "-hf ${s.hf}"
+        "--no-mmproj"
+      ]
+      ++ (
+        if s.device == "cuda" then
+          [ "-dev CUDA0 -ngl all -t 4 -tb 8" ]
+        else
+          [
+            "--device none -ngl 0"
+            "-t ${toString s.threads} -tb ${toString s.batchThreads}"
+          ]
+      )
+      ++ [
+        "-c ${toString s.ctx}"
+        "-np 1"
+        "-fa on"
+        "--jinja"
+        "-rea off --reasoning-budget 0"
+        "--n-predict ${toString s.maxOutput}"
+        # HA's Assist prompt + tool list is a static ~6-8k-token prefix (live
+        # state comes through the GetLiveContext tool), so with the prompt cache
+        # every turn after the first is a few-token prefill.
+        "--cache-prompt --cache-ram -1"
+        "--spec-type ngram-mod"
+        "--host 0.0.0.0"
+        "--no-warmup"
+      ]
+      ++ s.extra
+    );
+    checkEndpoint = "/health";
+    metadata = {
+      hf_repo = s.hf;
+      max_input_tokens = s.ctx;
+      max_output_tokens = s.maxOutput;
+    };
+    capabilities = capabilities s;
+  };
 in
 {
   inherit llama-cpp;
-  entry = s: { inherit coder title; }.${s.kind} s;
+  entry = s: { inherit coder title voice; }.${s.kind} s;
 }

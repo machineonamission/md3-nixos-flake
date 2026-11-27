@@ -49,7 +49,7 @@ let
       fail = msg: throw "llm/profiles.nix: profile '${id}' ${msg}";
       known = t: if models ? ${t} then t else fail "names unknown model '${t}'";
       matched = lib.optionals (p ? match) (lib.attrNames (lib.filterAttrs (_: matches p.match) models));
-      ids = map known (p.prefer or [ ] ++ p.targets or [ ] ++ matched);
+      ids = map known (p.prefer or [ ] ++ p.targets or [ ] ++ matched ++ p.fallback or [ ]);
       targets = if ids == [ ] then fail "matches no models" else lib.unique ids;
       specs = map (t: models.${t}) targets;
     in
@@ -59,6 +59,7 @@ let
     // removeAttrs p [
       "match"
       "prefer"
+      "fallback"
     ]
     // {
       inherit targets;

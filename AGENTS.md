@@ -71,6 +71,9 @@ nix flake update                       # bump all inputs (llama.cpp CUDA rebuild
 # root
 sudo nixos-rebuild switch --flake .                            # activate normal, all 3 in boot menu
 sudo nixos-rebuild test --flake . --specialisation saver       # live-switch to saver (no boot entry change)
+# deploy while RUNNING saver/headless: plain `switch` would bounce you through normal
+# mode (llama-swap stops). This sets the boot default AND activates saver live:
+sudo nixos-rebuild switch --flake . --specialisation saver
 sudo /run/current-system/specialisation/headless/bin/switch-to-configuration test   # same, from the running system
 bootctl list                                                   # find the entry ids
 sudo bootctl set-oneshot nixos-generation-<N>-specialisation-headless.conf && sudo reboot
@@ -85,6 +88,18 @@ noreasoning are generated; llama-swap discovery in OpenCode is off on purpose).
 Profiles pick targets by tag (`match = [ "dense" "!unsafe" ]`, `prefer = [...]`
 first); see the header of modules/llm/models/profiles.nix. Show what a profile resolves to:
 `nix eval .#nixosConfigurations.MelDesktop3.config.specialisation.saver.configuration.services.llama-swap.settings.selectors.<id>.targets`
+`fallback = [...]` puts ids last.
+
+### Home Assistant voice (`voice` selector)
+Home Assistant's voice agent sends model `voice` (thinking on, `reasoning_effort: low`).
+The routing groups are `vram` (coders + `voice-gpu-Qwen3.5-4B`, one at a time), `igpu`
+(title models) and `cpu` (`voice-Qwen3.5-4B`, persistent). Both voice models are preloaded
+(`hooks.on_startup.preload`) and run `-rea off`. The warm order is GPU voice model → whatever
+coder is loaded → CPU voice model, so voice never causes a swap. Coders are reasoning-mandatory
+(Tiel fakes tool calls with thinking off), hence the low-effort thinking. Benchmarks and the
+eval harness live in `~/Projects/home-assistant-server/voice/` (see its AGENTS.md). The iGPU is
+slower than the CPU for this, so it's deliberately unused. Coder `fitt` defaults were raised to
+768/1024 MiB after Tiel OOM'd on the first request with 128.
 
 ## OpenCode config
 

@@ -60,7 +60,21 @@ lib.mkIf config.meldesktop.llm {
           persistent = true;
           members = lib.attrNames catalog.groups.igpu;
         };
+        # CPU-only always-on models (the HA voice fallback): never unloaded, never
+        # unload anything, and preloaded below so the `voice` selector always has
+        # a ready target.
+        cpu = {
+          swap = false;
+          exclusive = false;
+          persistent = true;
+          members = lib.attrNames catalog.groups.cpu;
+        };
       };
+
+      # CPU voice first (always resident), then the GPU voice model so the idle RTX
+      # serves HA until a coder evicts it (the cpu group is persistent, so loading
+      # an exclusive vram member can't unload it). See profiles.nix `voice`.
+      hooks.on_startup.preload = lib.attrNames catalog.groups.cpu ++ [ "voice-gpu-Qwen3.5-4B" ];
     };
   };
 

@@ -23,6 +23,11 @@ let
   #                   guards against something else (now ~only KWin: saver keeps
   #                   apps off the dGPU) growing mid-generation = CUDA OOM.
   #                   Embedded MTP heads allocate outside --fit's estimate: +256.
+  #                   2026-11-27: 128 was too thin. Tiel-Coder-35B-A3B in saver
+  #                   aborted with "CUDA error: out of memory" in process_ubatch
+  #                   on the FIRST request, even "say hi" (--no-warmup defers the
+  #                   compute-buffer hit), with ~0.8 GB of other dGPU use (KWin +
+  #                   an Electron GPU process). Raised to 768 / 1024.
   #   kvq           — KV-cache quant for K and V. Keep them equal: only symmetric
   #                   q8_0 has a CUDA FlashAttention kernel.
   #   np            — parallel slots (1 = full context, no KV duplication)
@@ -42,7 +47,7 @@ let
       ctx ? 262144,
       fitCtx ? null,
       mtp ? null,
-      fitt ? (if mtp == "self" then 384 else 128),
+      fitt ? (if mtp == "self" then 1024 else 768),
       kvq ? "q8_0",
       np ? 1,
       quant ? "APEX-I-NanoPlus",
@@ -121,7 +126,52 @@ let
         tags
         ;
     };
+
+  # Always-resident CPU model for the Home Assistant voice assistant: the `voice`
+  # selector's fallback when no GPU model is warm (profiles.nix). No ttl, preloaded
+  # at startup, pinned to the P-cores, thinking off. A voice turn is 2-3 short tool
+  # rounds, so generation speed is what the user waits on.
+  #   hf     — "repo:QUANT" (llama-server -hf syntax)
+  #   device — "cpu" (taskset-pinned, always resident) or "cuda" (RTX, lives in the
+  #            vram swap group so any coder evicts it)
+  #   cpus   — taskset CPU list (0-15 = the 8 P-cores incl. HT siblings on the 14700K)
+  voiceModel =
+    {
+      name,
+      hf,
+      device ? "cpu",
+      ctx ? 16384,
+      cpus ? "0-15",
+      threads ? 8,
+      batchThreads ? 16,
+      tags ? [ ],
+      extra ? [ ],
+    }:
+    {
+      kind = "voice";
+      tools = true;
+      image = false;
+      maxOutput = 512;
+      reasoningBudget = 0;
+      effort = "none";
+      inherit
+        name
+        hf
+        device
+        ctx
+        cpus
+        threads
+        batchThreads
+        tags
+        extra
+        ;
+    };
 in
 {
-  inherit model valV3 titleModel;
+  inherit
+    model
+    valV3
+    titleModel
+    voiceModel
+    ;
 }

@@ -13,10 +13,37 @@
   model,
   valV3,
   titleModel,
+  voiceModel,
 }:
 {
+  # Always-on CPU models (persistent `cpu` group, preloaded). Only the HA voice
+  # fallback lives here; see the `voice` selector in profiles.nix.
+  cpu = {
+    # Picked 2026-11-27 with home-assistant-server/voice/eval.py (the live HA
+    # Assist prompt + 50 tools, 15 utterances, first-round tool calls graded):
+    #   Qwen3.5-4B  Q4_K_M  15/15  ~3.5 s/round warm, 11 t/s gen, 140 t/s prefill
+    #   Qwen3.5-9B  Q4_K_M  13/15  ~1.5x slower
+    #   gemma-4-E4B Q4_K_M   8/15  fast, but often emits tool calls as plain text
+    #   Qwen3.5-2B (title)  "isn't cutting it" (user), 9 t/s on the busy iGPU
+    # Cold prefill of the ~7.8k-token prompt is ~65 s; HA primes it when
+    # llama-swap comes up (automation "Voice: pick pipeline").
+    "voice-Qwen3.5-4B" = voiceModel {
+      name = "Qwen3.5 4B CPU (HA voice)";
+      hf = "unsloth/Qwen3.5-4B-GGUF:Q4_K_M";
+    };
+  };
+
   # Main coders on the RTX 5070 Ti (CUDA0). One at a time.
   vram = {
+    # HA voice on the RTX while the GPU is otherwise idle: preloaded at startup
+    # (llama-swap default.nix), first target of the `voice` selector, evicted by
+    # any coder like any other vram member. Same model as voice-Qwen3.5-4B.
+    "voice-gpu-Qwen3.5-4B" = voiceModel {
+      name = "Qwen3.5 4B GPU (HA voice)";
+      hf = "unsloth/Qwen3.5-4B-GGUF:Q4_K_M";
+      device = "cuda";
+    };
+
     # ---- Tiel 35B-A3B MoE (the main coder) --------------------------------
     "Tiel-Coder-35B-A3B" = model {
       name = "Tiel Coder 35B A3B (NanoPlus)";
