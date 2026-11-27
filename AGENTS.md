@@ -99,15 +99,19 @@ first); see the header of modules/llm/models/profiles.nix. Show what a profile r
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded
 coder counts as busy; llama-swap can't tell busy from idle). This is pure llama-swap config:
 - `routing.router.use = capacity`, one pool `vram` (16000 MiB). Coders claim all of it
-  (`--fit` grabs what's free) with `evict_cost` 100; `voice-gpu-Qwen3.5-4B` claims 3600, ttl 0,
-  preloaded at startup. CPU (`voice-Qwen3.5-4B`, ttl 600) and iGPU title models claim nothing.
+  (`--fit` grabs what's free) with `evict_cost` 100; `voice-gpu-gemma-4-12b` claims 8200, ttl 600,
+  loaded on demand (no preload; cold first turn ~6.5 s). CPU (`voice-Qwen3.5-4B`, ttl 600) and iGPU title models claim nothing.
 - `voice` selector: `strategy: fit`, `no_evict: true`, targets `[voice-gpu, voice-cpu]`. GPU free →
-  GPU model (~0.15 s turns, cold-started if needed); coder loaded/loading → CPU (~3-5 s).
+  GPU model (gemma-4-12b, ~0.4 s turns, cold-started if needed); coder loaded/loading → CPU
+  (Qwen3.5-4B, ~2-5 s).
 - Catch: a loaded CPU model wins ties over a cold GPU one, so after a coder unloads voice stays on
   the CPU until its 600 s ttl; its cold start re-prefills HA's ~9k-token prompt (~55-65 s).
 - `fit`/`capacity` need llama-swap >= v273; nixpkgs has v268, so modules/llm/llama-swap/package.nix
   pins v277 (bump instructions in the file; delete it once nixpkgs catches up).
-- Both voice models run `-rea off` (HA sends enable_thinking + `reasoning_effort: low`).
+- Both voice models run `-rea off` (HA sends enable_thinking + `reasoning_effort: low`). Thinking
+  was benchmarked 2026-11-27 and made every model worse (see the comment in models.nix), as did the
+  MoE candidates (gemma-4-26B-A4B, Inkling-2-Mini, LFM2.5-24B-A2B); on the CPU, gemma-26B-A4B is
+  ~1 case better than Qwen3.5-4B but needs 18 GB RAM next to a coder, so the CPU model stays.
 Benchmarks and the eval harness live in `~/Projects/home-assistant-server/voice/` (see its
 AGENTS.md). The iGPU is slower than the CPU for this, so it's deliberately unused. Coder `fitt`
 defaults were raised to 768/1024 MiB after Tiel OOM'd on the first request with 128.

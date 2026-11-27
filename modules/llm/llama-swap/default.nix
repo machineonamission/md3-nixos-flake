@@ -45,9 +45,6 @@ let
       // lib.optionalAttrs (s.device == "cuda") { capacities.vram = s.vramMiB; }
     else
       { };
-  gpuVoice = lib.head (
-    lib.attrNames (lib.filterAttrs (_: s: s.kind == "voice") catalog.groups.vram)
-  );
 in
 lib.mkIf config.meldesktop.llm {
   # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
@@ -84,10 +81,8 @@ lib.mkIf config.meldesktop.llm {
         settings.capacity.pools.vram = vramMiB;
       };
 
-      # The GPU voice model, so HA is fast from boot until a coder evicts it.
-      # Nothing reloads it afterwards except the `voice` selector itself, once the
-      # GPU is free and the CPU voice model has hit its ttl (profiles.nix).
-      hooks.on_startup.preload = [ gpuVoice ];
+      # No preload: the GPU voice model loads on demand (the `voice` selector) and
+      # unloads on its ttl, so nothing sits in VRAM while idle.
     };
   };
 

@@ -104,9 +104,9 @@
   # then fewest unloads, then ready > starting > cold, then target order.
   # no_evict: never pick a target that unloads anything (429 instead).
   #   GPU free (nothing / voice-gpu in vram)  -> voice-gpu, cold-starting it if
-  #                                              needed (~0.15 s turns warm)
+  #                                              needed (~6.5 s first turn, ~0.4 s warm)
   #   coder loaded or loading (claims all vram) -> voice-gpu would evict it, so
-  #                                              the CPU model (~3-5 s turns)
+  #                                              the CPU model (~2-5 s turns)
   # The catch: once the CPU model is loaded it wins every tie (ready beats cold),
   # so after a coder unloads, voice stays on the CPU until the CPU model's ttl
   # (presets.nix voiceModel, 600 s idle) unloads it. Its cold start re-prefills
@@ -118,7 +118,7 @@
     strategy = "fit";
     settings.no_evict = true;
     targets = [
-      "voice-gpu-Qwen3.5-4B"
+      "voice-gpu-gemma-4-12b"
       "voice-Qwen3.5-4B"
     ];
   };

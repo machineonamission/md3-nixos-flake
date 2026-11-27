@@ -35,13 +35,25 @@
 
   # Models on the RTX 5070 Ti (CUDA0). Coders claim the whole card: one at a time.
   vram = {
-    # HA voice on the RTX while no coder holds it: preloaded at startup (llama-swap
-    # default.nix), first target of the `voice` selector, evicted by any coder.
-    # Same model as voice-Qwen3.5-4B.
-    "voice-gpu-Qwen3.5-4B" = voiceModel {
-      name = "Qwen3.5 4B GPU (HA voice)";
-      hf = "unsloth/Qwen3.5-4B-GGUF:Q4_K_M";
+    # HA voice on the RTX while no coder holds it: first target of the `voice`
+    # selector, loaded on demand (cold start ~4 s load + ~2.5 s prefill from the
+    # local HF cache), unloaded after 600 s idle, evicted by any coder.
+    # Picked 2026-11-27 with home-assistant-server/voice/bench.py (3 reps, prompt
+    # with the 4 extra rules; hard set = args checked, 75 cases):
+    #   gemma-4-12b Q4_K_M      hard 71/75  0.42 s/turn  7.9 GB   <- this
+    #   gemma-4-26B-A4B MoE     hard 69/75  0.35 s/turn  12 GB    "lights off" -> HassLightSet
+    #   Qwen3.5-4B              hard 67/75  0.24 s/turn  3.5 GB   the previous pick
+    #   Inkling-2-Mini MoE      21/25 (1 rep), 1.5 s/turn, 12 GB; garbage with -rea off
+    #   LFM2.5-24B-A2B MoE      hard 41/75  0.15 s/turn  11 GB    locks on "unlock"
+    # Thinking on (effort low) made every model worse: gemma 69/75 with 13 s p90
+    # (multi-action turns burn 2k tokens and return nothing), Qwen 4B/9B start
+    # answering trivia and pick the opposite light script. Keep -rea off.
+    "voice-gpu-gemma-4-12b" = voiceModel {
+      name = "Gemma 4 12B GPU (HA voice)";
+      hf = "unsloth/gemma-4-12b-it-GGUF:Q4_K_M";
       device = "cuda";
+      vramMiB = 8200; # measured 7920 MiB at 16k ctx
+      ttl = 600;
     };
 
     # ---- Tiel 35B-A3B MoE (the main coder) --------------------------------
