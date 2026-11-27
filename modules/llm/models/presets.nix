@@ -100,7 +100,7 @@ let
         mtp = "self";
         # Headless has no desktop, so no KWin/Electron to guard against: claim
         # the whole card (no --fit headroom) when there's no one to log in.
-        fittHeadless = 0;
+        fittHeadless = 128;
       }
       // args
       // {
