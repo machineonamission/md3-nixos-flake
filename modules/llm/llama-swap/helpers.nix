@@ -2,15 +2,38 @@
 #
 #   entry     — spec -> { name; cmd; checkEndpoint; capabilities; metadata; ... }
 #   llama-cpp — the unified CUDA + Vulkan build every entry runs
-{ lib, pkgs-llama }:
+{
+  lib,
+  pkgs-llama,
+  llama-cpp-src, # flake input `llama-cpp` (master, flake = false)
+}:
 let
   # One binary that sees BOTH devices:
   #   CUDA0   -> RTX 5070 Ti (weights of the main coders)
   #   Vulkan0 -> Intel iGPU  (title models + separate MTP draft heads)
-  llama-cpp = pkgs-llama.llama-cpp.override {
-    cudaSupport = true;
-    vulkanSupport = true;
+  # Built from source with upstream's own Nix expression (it tracks the tree, and
+  # its web UI uses importNpmLock, so bumps never need a hash update). CUDA arch
+  # comes from pkgs-llama's cudaCapabilities ("12.0").
+  upstream = pkgs-llama.callPackage "${llama-cpp-src}/.devops/nix/scope.nix" {
+    llamaVersion = "0-unstable-${lib.substring 0 8 llama-cpp-src.lastModifiedDate}";
   };
+  llama-cpp =
+    (upstream.llama-cpp.override {
+      useCuda = true;
+      useVulkan = true;
+    }).overrideAttrs
+      (old: {
+        cmakeFlags = old.cmakeFlags ++ [
+          # Upstream's expression builds ONE generic CPU backend; inside the Nix
+          # sandbox that means no AVX2/AVX-VNNI, which cripples the CPU voice model.
+          # Build every CPU variant and pick at runtime (same as nixpkgs).
+          (lib.cmakeBool "GGML_CPU_ALL_VARIANTS" true)
+          (lib.cmakeBool "GGML_BACKEND_DL" true)
+          (lib.cmakeFeature "GGML_BACKEND_DIR" "${placeholder "out"}/bin")
+          # shown by `llama-server --version` and /props
+          (lib.cmakeFeature "LLAMA_BUILD_COMMIT" llama-cpp-src.shortRev)
+        ];
+      });
   server = lib.getExe' llama-cpp "llama-server";
 
   # Where a SEPARATE draft head runs. igpu keeps 100% of the RTX VRAM for the coder.

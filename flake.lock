@@ -20,6 +20,22 @@
         "type": "github"
       }
     },
+    "llama-cpp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1795772890,
+        "narHash": "sha256-/9hwBe0r5+RXOfpZaMAIb6QsXmvoHPgERIbDVnumcUM=",
+        "owner": "ggml-org",
+        "repo": "llama.cpp",
+        "rev": "2a8bf0f593472159d8805e9c2a6efb482634db05",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ggml-org",
+        "repo": "llama.cpp",
+        "type": "github"
+      }
+    },
     "nixos-flatpak": {
       "locked": {
         "lastModified": 1790428548,
@@ -55,6 +71,7 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
+        "llama-cpp": "llama-cpp",
         "nixos-flatpak": "nixos-flatpak",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }

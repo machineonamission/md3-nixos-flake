@@ -35,8 +35,11 @@ modules/                one concern per file; the file name says what's in it.
                         llama-swap/ and opencode/: models.nix (models keyed by device
                         group, with tags), profiles.nix (model sets picked by tag
                         query), presets.nix (defaults), default.nix (resolves it)
-    llama-swap/         (mkIf meldesktop.llm) helpers.nix (spec -> llama-server flags),
-                        package.nix (llama-swap v277 override; nixpkgs is behind)
+    llama-swap/         (mkIf meldesktop.llm) helpers.nix (spec -> llama-server flags,
+                        AND the llama.cpp build: flake input `llama-cpp` = ggml-org
+                        master, upstream .devops/nix on pkgs-llama, CUDA+Vulkan, all
+                        CPU variants), package.nix (llama-swap v277 override; nixpkgs
+                        is behind)
     opencode/           opencode packages + generated ~/.config/opencode/opencode.json
                         (home-manager programs.opencode): settings.nix,
                         providers.nix (models from models/), permissions.nix,
@@ -68,6 +71,7 @@ branch on it with `lib.mkIf` (never in `imports`, that would recurse).
 nixos-rebuild build --flake .          # builds all 3 modes into ./result
 ls result/specialisation               # saver headless
 nix flake update                       # bump all inputs (llama.cpp CUDA rebuilds!)
+nix flake update llama-cpp             # just llama.cpp to current master (CUDA rebuild)
 
 # root
 sudo nixos-rebuild switch --flake .                            # activate normal, all 3 in boot menu

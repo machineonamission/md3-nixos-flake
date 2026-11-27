@@ -9,6 +9,15 @@
     };
     # Declarative flatpaks (Spotify: pkgs.spotify was removed in 26.11).
     nixos-flatpak.url = "github:gmodena/nix-flatpak/latest";
+    # llama.cpp from source, tracking master (nixpkgs lags weeks behind new model
+    # architectures). Built with upstream's own .devops/nix expression on pkgs-llama
+    # (modules/llm/llama-swap/helpers.nix). Bump: `nix flake update llama-cpp`
+    # (full CUDA rebuild). Not a flake input on purpose: its flake pulls flake-parts
+    # and its own nixpkgs, and we only need the source tree.
+    llama-cpp = {
+      url = "github:ggml-org/llama.cpp";
+      flake = false;
+    };
   };
 
   outputs =

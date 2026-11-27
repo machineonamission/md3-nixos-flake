@@ -15,11 +15,15 @@
   lib,
   pkgs,
   pkgs-llama,
+  inputs,
   ...
 }:
 let
   catalog = import ../models { inherit lib; };
-  llama = import ./helpers.nix { inherit lib pkgs-llama; };
+  llama = import ./helpers.nix {
+    inherit lib pkgs-llama;
+    llama-cpp-src = inputs.llama-cpp;
+  };
   cfg = config.services.llama-swap;
 
   # Capacity router (routing below). One pool, the RTX's VRAM in MiB. Coders

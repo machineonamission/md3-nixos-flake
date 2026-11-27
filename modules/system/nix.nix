@@ -5,7 +5,8 @@
     cudaCapabilities = [ "12.0" ];
     nvidia.acceptLicense = true;
     # Deliberately NO cudaSupport here: it would rebuild every CUDA-capable
-    # package from source. llama.cpp gets CUDA via pkgs-llama (flake.nix).
+    # package from source. llama.cpp gets CUDA via pkgs-llama (flake.nix), built
+    # from the `llama-cpp` flake input (master; modules/llm/llama-swap/helpers.nix).
     #
     # gtk2 (final release 2020) is marked broken ahead of its removal in 27.05;
     # downgrade that to a warning until the apps still using it migrate.
