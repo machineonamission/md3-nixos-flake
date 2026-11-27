@@ -16,7 +16,9 @@
 #   effort   — OpenCode's default reasoning effort when no variant is picked
 #              (defaults to the first target's)
 #   strategy — llama-swap selector strategy (default "warm": keeps targets warm
-#              for fast swaps but still lets idle models unload)
+#              for fast swaps but still lets idle models unload; "fit" picks
+#              by what the capacity router would have to unload)
+#   settings — llama-swap selector settings, passed through (e.g. no_evict)
 #
 # See what a profile resolves to:
 #   nix eval .#nixosConfigurations.MelDesktop3.config.specialisation.saver.configuration.services.llama-swap.settings.selectors.moe.targets
@@ -92,27 +94,32 @@
     prefer = [ "Qwen3.5-2B" ];
   };
 
-  # Home Assistant voice ("hey jarvis"). HA sends model "voice" with
-  # chat_template_kwargs.enable_thinking=true + reasoning_effort=low (the voice
-  # models run -rea off and ignore it; coders like Tiel are reasoning-mandatory
-  # and stop calling tools without it). The warm strategy picks the first READY
-  # target in order, and only one vram member runs at a time, so:
-  #   1. voice-gpu-Qwen3.5-4B, preloaded while the GPU is idle: ~0.3 s turns;
-  #   2. else whichever coder OpenCode swapped in (it evicted voice-gpu):
-  #      ~1 s turns with low-effort thinking (eval: Tiel 13/15, thinking off 4/15);
-  #   3. else (a coder is still loading) the always-on CPU model: ~3-5 s turns.
-  # Voice never triggers a swap itself; targets[0] is only cold-started if nothing
-  # at all is running. After a coder takes the GPU, voice-gpu stays out until
-  # llama-swap restarts (coders have no ttl).
-  # Caveats: warm does not know "busy". If OpenCode is mid-generation on the
-  # loaded coder (-np 1), voice queues behind it. And a voice turn replaces the
-  # coder's slot, though --cache-ram restores OpenCode's prefix afterwards.
+  # Home Assistant voice ("hey jarvis"). HA sends model "voice" (with
+  # enable_thinking + reasoning_effort=low; both voice models run -rea off and
+  # ignore it). Rule: voice NEVER touches a coder; a loaded coder counts as busy
+  # (llama-swap can't tell busy from idle).
+  #
+  # `fit` (needs the capacity router, llama-swap/default.nix) asks the router what
+  # each target would unload and picks the cheapest: lowest summed evict_cost,
+  # then fewest unloads, then ready > starting > cold, then target order.
+  # no_evict: never pick a target that unloads anything (429 instead).
+  #   GPU free (nothing / voice-gpu in vram)  -> voice-gpu, cold-starting it if
+  #                                              needed (~0.15 s turns warm)
+  #   coder loaded or loading (claims all vram) -> voice-gpu would evict it, so
+  #                                              the CPU model (~3-5 s turns)
+  # The catch: once the CPU model is loaded it wins every tie (ready beats cold),
+  # so after a coder unloads, voice stays on the CPU until the CPU model's ttl
+  # (presets.nix voiceModel, 600 s idle) unloads it. Its cold start re-prefills
+  # HA's ~9k-token prompt: ~55-65 s for the first turn.
   voice = {
     name = "Voice";
-    description = "HA voice: GPU voice model, else warm coder, else always-on CPU model";
+    description = "HA voice: GPU voice model when no coder holds the RTX, else CPU model";
     effort = "low";
-    prefer = [ "voice-gpu-Qwen3.5-4B" ];
-    match = [ "vram" ];
-    fallback = [ "voice-Qwen3.5-4B" ];
+    strategy = "fit";
+    settings.no_evict = true;
+    targets = [
+      "voice-gpu-Qwen3.5-4B"
+      "voice-Qwen3.5-4B"
+    ];
   };
 }

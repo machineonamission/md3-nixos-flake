@@ -32,10 +32,11 @@ modules/                one concern per file; the file name says what's in it.
                         appimage.nix, usr-share-mounts.nix (bindfs for flatpak)
   llm/
     models/             THE model list (plain data, not a module), shared by
-                        llama-swap/ and opencode/: models.nix (models keyed by routing
+                        llama-swap/ and opencode/: models.nix (models keyed by device
                         group, with tags), profiles.nix (model sets picked by tag
                         query), presets.nix (defaults), default.nix (resolves it)
-    llama-swap/         (mkIf meldesktop.llm) helpers.nix (spec -> llama-server flags)
+    llama-swap/         (mkIf meldesktop.llm) helpers.nix (spec -> llama-server flags),
+                        package.nix (llama-swap v277 override; nixpkgs is behind)
     opencode/           opencode packages + generated ~/.config/opencode/opencode.json
                         (home-manager programs.opencode): settings.nix,
                         providers.nix (models from models/), permissions.nix,
@@ -91,15 +92,21 @@ first); see the header of modules/llm/models/profiles.nix. Show what a profile r
 `fallback = [...]` puts ids last.
 
 ### Home Assistant voice (`voice` selector)
-Home Assistant's voice agent sends model `voice` (thinking on, `reasoning_effort: low`).
-The routing groups are `vram` (coders + `voice-gpu-Qwen3.5-4B`, one at a time), `igpu`
-(title models) and `cpu` (`voice-Qwen3.5-4B`, persistent). Both voice models are preloaded
-(`hooks.on_startup.preload`) and run `-rea off`. The warm order is GPU voice model → whatever
-coder is loaded → CPU voice model, so voice never causes a swap. Coders are reasoning-mandatory
-(Tiel fakes tool calls with thinking off), hence the low-effort thinking. Benchmarks and the
-eval harness live in `~/Projects/home-assistant-server/voice/` (see its AGENTS.md). The iGPU is
-slower than the CPU for this, so it's deliberately unused. Coder `fitt` defaults were raised to
-768/1024 MiB after Tiel OOM'd on the first request with 128.
+Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded
+coder counts as busy; llama-swap can't tell busy from idle). This is pure llama-swap config:
+- `routing.router.use = capacity`, one pool `vram` (16000 MiB). Coders claim all of it
+  (`--fit` grabs what's free) with `evict_cost` 100; `voice-gpu-Qwen3.5-4B` claims 3600, ttl 0,
+  preloaded at startup. CPU (`voice-Qwen3.5-4B`, ttl 600) and iGPU title models claim nothing.
+- `voice` selector: `strategy: fit`, `no_evict: true`, targets `[voice-gpu, voice-cpu]`. GPU free →
+  GPU model (~0.15 s turns, cold-started if needed); coder loaded/loading → CPU (~3-5 s).
+- Catch: a loaded CPU model wins ties over a cold GPU one, so after a coder unloads voice stays on
+  the CPU until its 600 s ttl; its cold start re-prefills HA's ~9k-token prompt (~55-65 s).
+- `fit`/`capacity` need llama-swap >= v273; nixpkgs has v268, so modules/llm/llama-swap/package.nix
+  pins v277 (bump instructions in the file; delete it once nixpkgs catches up).
+- Both voice models run `-rea off` (HA sends enable_thinking + `reasoning_effort: low`).
+Benchmarks and the eval harness live in `~/Projects/home-assistant-server/voice/` (see its
+AGENTS.md). The iGPU is slower than the CPU for this, so it's deliberately unused. Coder `fitt`
+defaults were raised to 768/1024 MiB after Tiel OOM'd on the first request with 128.
 
 ## OpenCode config
 

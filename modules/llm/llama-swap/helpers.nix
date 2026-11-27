@@ -128,8 +128,8 @@ let
     };
     capabilities = capabilities s;
   };
-  # Always-resident CPU voice model (Home Assistant). No ttl: the `cpu` routing
-  # group is persistent and llama-swap preloads it (hooks.on_startup.preload).
+  # Home Assistant voice model. ttl and VRAM claim are set in llama-swap/default.nix
+  # from the spec (presets.nix voiceModel): the CPU one unloads after 600 s idle.
   # Benchmarked 2026-11-27 on the real HA Assist request (~7.8k-token prompt,
   # 50 tools): the iGPU is ~2x SLOWER than the CPU here (Qwen3.5-4B: Vulkan0
   # 48 t/s prefill / 4.6 t/s gen vs CPU 143 / 11), and it is busy rendering the
@@ -138,8 +138,8 @@ let
   # is lossless and ~5% faster (tool-call JSON repeats names from the prompt); a
   # Qwen3.5-0.8B draft model was slower (≈0% acceptance), no MTP head in the GGUF.
   #
-  # device = "cuda": the same model fully on the RTX, for when the GPU is otherwise
-  # idle (it is preloaded into the vram group; any coder evicts it).
+  # device = "cuda": the same model fully on the RTX, for when no coder holds it
+  # (preloaded at startup; any coder evicts it via the capacity router).
   # -rea off on BOTH: HA sends enable_thinking=true + reasoning_effort=low so that a
   # warm coder (Tiel is reasoning-mandatory and stops calling tools without it)
   # thinks a little; these voice models must ignore that and stay non-thinking.

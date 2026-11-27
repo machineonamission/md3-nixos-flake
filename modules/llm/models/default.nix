@@ -3,7 +3,7 @@
 # It is NOT a NixOS module (modules/default.nix doesn't import it).
 #
 #   presets.nix  — model / valV3 / titleModel: fill in defaults -> full spec
-#   models.nix   — the models, keyed by routing group (vram / igpu), with tags
+#   models.nix   — the models, keyed by device group (cpu / vram / igpu), with tags
 #   profiles.nix — model sets picked by tag queries (llama-swap selectors)
 #
 # Returns:

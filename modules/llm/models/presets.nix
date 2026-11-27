@@ -127,19 +127,23 @@ let
         ;
     };
 
-  # Always-resident CPU model for the Home Assistant voice assistant: the `voice`
-  # selector's fallback when no GPU model is warm (profiles.nix). No ttl, preloaded
-  # at startup, pinned to the P-cores, thinking off. A voice turn is 2-3 short tool
-  # rounds, so generation speed is what the user waits on.
-  #   hf     — "repo:QUANT" (llama-server -hf syntax)
-  #   device — "cpu" (taskset-pinned, always resident) or "cuda" (RTX, lives in the
-  #            vram swap group so any coder evicts it)
-  #   cpus   — taskset CPU list (0-15 = the 8 P-cores incl. HT siblings on the 14700K)
+  # Home Assistant voice model (the `voice` selector in profiles.nix), thinking off.
+  # A voice turn is 2-3 short tool rounds, so generation speed is what you wait on.
+  #   hf      — "repo:QUANT" (llama-server -hf syntax)
+  #   device  — "cpu" (taskset-pinned to the P-cores) or "cuda" (all on the RTX)
+  #   vramMiB — what a cuda model claims of llama-swap's `vram` capacity pool
+  #             (measured: Qwen3.5-4B Q4_K_M at 16k ctx = 3518 MiB)
+  #   ttl     — llama-swap idle unload, seconds (0 = never). The CPU model MUST
+  #             unload eventually: while it is loaded the `fit` selector prefers it
+  #             over a cold GPU model, so the GPU one would never come back.
+  #   cpus    — taskset CPU list (0-15 = the 8 P-cores incl. HT siblings on the 14700K)
   voiceModel =
     {
       name,
       hf,
       device ? "cpu",
+      vramMiB ? 3600,
+      ttl ? (if device == "cpu" then 600 else 0),
       ctx ? 16384,
       cpus ? "0-15",
       threads ? 8,
@@ -158,6 +162,8 @@ let
         name
         hf
         device
+        vramMiB
+        ttl
         ctx
         cpus
         threads

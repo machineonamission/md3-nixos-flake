@@ -13,6 +13,7 @@
 {
   config,
   lib,
+  pkgs,
   pkgs-llama,
   ...
 }:
@@ -20,6 +21,29 @@ let
   catalog = import ../models { inherit lib; };
   llama = import ./helpers.nix { inherit lib pkgs-llama; };
   cfg = config.services.llama-swap;
+
+  # Capacity router (routing below). One pool, the RTX's VRAM in MiB. Coders
+  # use `--fit on`, which grabs whatever VRAM is free, so each claims the whole
+  # pool: two coders, or a coder + the GPU voice model, can't coexist. CPU and
+  # iGPU models claim nothing, so nothing evicts them and they evict nothing.
+  vramMiB = 16000;
+  routing =
+    s:
+    if s.kind == "coder" then
+      {
+        capacities.vram = vramMiB;
+        evict_cost = 100; # never worth unloading for voice (the selector skips it anyway)
+      }
+    else if s.kind == "voice" then
+      {
+        inherit (s) ttl;
+      }
+      // lib.optionalAttrs (s.device == "cuda") { capacities.vram = s.vramMiB; }
+    else
+      { };
+  gpuVoice = lib.head (
+    lib.attrNames (lib.filterAttrs (_: s: s.kind == "voice") catalog.groups.vram)
+  );
 in
 lib.mkIf config.meldesktop.llm {
   # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
@@ -30,51 +54,36 @@ lib.mkIf config.meldesktop.llm {
 
   services.llama-swap = {
     enable = true;
+    package = import ./package.nix { inherit pkgs; };
     inherit (catalog) port;
     listenAddress = "0.0.0.0"; # reachable from other devices on the LAN
     settings = {
-      models = lib.mapAttrs (_: llama.entry) catalog.models;
-      selectors = lib.mapAttrs (_: p: {
-        inherit (p)
-          strategy
-          name
-          description
-          targets
-          ;
-      }) catalog.profiles;
+      models = lib.mapAttrs (_: s: llama.entry s // routing s) catalog.models;
+      selectors = lib.mapAttrs (
+        _: p:
+        {
+          inherit (p)
+            strategy
+            name
+            description
+            targets
+            ;
+        }
+        // lib.optionalAttrs (p ? settings) { inherit (p) settings; }
+      ) catalog.profiles;
       healthCheckTimeout = 500; # seconds; big models load slowly
       sendLoadingState = false; # don't inject loading updates into reasoning
       includeAliasesInList = false;
 
-      routing.router.settings.groups = {
-        # main coders: one at a time, and running one unloads the others
-        vram = {
-          swap = true;
-          exclusive = true;
-          members = lib.attrNames catalog.groups.vram;
-        };
-        # title models: always resident (the vram group can't unload them), coexist
-        igpu = {
-          swap = false;
-          exclusive = false;
-          persistent = true;
-          members = lib.attrNames catalog.groups.igpu;
-        };
-        # CPU-only always-on models (the HA voice fallback): never unloaded, never
-        # unload anything, and preloaded below so the `voice` selector always has
-        # a ready target.
-        cpu = {
-          swap = false;
-          exclusive = false;
-          persistent = true;
-          members = lib.attrNames catalog.groups.cpu;
-        };
+      routing.router = {
+        use = "capacity";
+        settings.capacity.pools.vram = vramMiB;
       };
 
-      # CPU voice first (always resident), then the GPU voice model so the idle RTX
-      # serves HA until a coder evicts it (the cpu group is persistent, so loading
-      # an exclusive vram member can't unload it). See profiles.nix `voice`.
-      hooks.on_startup.preload = lib.attrNames catalog.groups.cpu ++ [ "voice-gpu-Qwen3.5-4B" ];
+      # The GPU voice model, so HA is fast from boot until a coder evicts it.
+      # Nothing reloads it afterwards except the `voice` selector itself, once the
+      # GPU is free and the CPU voice model has hit its ttl (profiles.nix).
+      hooks.on_startup.preload = [ gpuVoice ];
     };
   };
 

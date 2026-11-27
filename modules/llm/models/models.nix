@@ -16,8 +16,8 @@
   voiceModel,
 }:
 {
-  # Always-on CPU models (persistent `cpu` group, preloaded). Only the HA voice
-  # fallback lives here; see the `voice` selector in profiles.nix.
+  # CPU-only models (claim no VRAM, so they never evict anything). Only the HA
+  # voice fallback lives here; see the `voice` selector in profiles.nix.
   cpu = {
     # Picked 2026-11-27 with home-assistant-server/voice/eval.py (the live HA
     # Assist prompt + 50 tools, 15 utterances, first-round tool calls graded):
@@ -33,11 +33,11 @@
     };
   };
 
-  # Main coders on the RTX 5070 Ti (CUDA0). One at a time.
+  # Models on the RTX 5070 Ti (CUDA0). Coders claim the whole card: one at a time.
   vram = {
-    # HA voice on the RTX while the GPU is otherwise idle: preloaded at startup
-    # (llama-swap default.nix), first target of the `voice` selector, evicted by
-    # any coder like any other vram member. Same model as voice-Qwen3.5-4B.
+    # HA voice on the RTX while no coder holds it: preloaded at startup (llama-swap
+    # default.nix), first target of the `voice` selector, evicted by any coder.
+    # Same model as voice-Qwen3.5-4B.
     "voice-gpu-Qwen3.5-4B" = voiceModel {
       name = "Qwen3.5 4B GPU (HA voice)";
       hf = "unsloth/Qwen3.5-4B-GGUF:Q4_K_M";
@@ -314,7 +314,7 @@
     };
   };
 
-  # Tiny title models on the Intel iGPU (Vulkan0). Always resident, coexist.
+  # Tiny title models on the Intel iGPU (Vulkan0). Claim no VRAM, coexist, ttl 120 s.
   igpu = {
     "Qwen3.5-2B" = titleModel {
       name = "Qwen3.5-2B iGPU (titles)";
