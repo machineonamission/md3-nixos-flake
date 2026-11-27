@@ -1,21 +1,8 @@
-# Firmware, GPUs, bluetooth, filesystems.
-{ config, pkgs, ... }:
+# RTX 5070 Ti: driver + GPU access for containers (all modes). The X server
+# itself lives in desktop/plasma.nix; modes/headless.nix loads the driver for
+# CUDA without it.
+{ config, ... }:
 {
-  hardware.enableRedistributableFirmware = true;
-  hardware.cpu.intel.updateMicrocode = true;
-  services.fwupd.enable = true;
-
-  # Intel iGPU: media decode + the Vulkan device llama-swap / saver mode use.
-  hardware.graphics = {
-    enable = true;
-    extraPackages = with pkgs; [
-      intel-media-driver
-      vpl-gpu-rt
-    ];
-  };
-
-  # RTX 5070 Ti. The X server itself lives in desktop.nix; headless.nix loads
-  # the driver for CUDA without it.
   hardware.nvidia = {
     open = true;
     modesetting.enable = true;
@@ -39,23 +26,5 @@
   hardware.nvidia-container-toolkit = {
     enable = true;
     suppressNvidiaDriverAssertion = true;
-  };
-
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = false;
-  };
-
-  # Linux 7.1+ NTFS driver (BitLocker HDD)
-  boot.supportedFilesystems = [ "ntfs" ];
-
-  programs.fuse = {
-    enable = true;
-    userAllowOther = true;
-  };
-  programs.partition-manager.enable = true;
-  programs.appimage = {
-    enable = true;
-    binfmt = true;
   };
 }

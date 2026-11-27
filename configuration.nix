@@ -8,7 +8,7 @@
 
   environment.variables.MEMINI_HOME = "personal/melody";
 
-  # nix-ld with a big library set + the `run-portable` wrapper (modules/portable.nix).
+  # nix-ld with a big library set + the `run-portable` wrapper (modules/compat/portable.nix).
   programs.portableApps.enable = true;
 
   # Do NOT bump this on upgrades; it pins stateful defaults to the install release.

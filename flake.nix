@@ -20,7 +20,7 @@
     }:
     {
       # One system; the saver / headless boot modes are specialisations of it
-      # (modules/meldesktop.nix), so a single `nixos-rebuild` builds all three.
+      # (modules/modes/specialisations.nix), so a single `nixos-rebuild` builds all three.
       nixosConfigurations.MelDesktop3 = nixpkgs-unstable.lib.nixosSystem {
         specialArgs = {
           inherit inputs;

@@ -1,5 +1,5 @@
-# The master model list, shared by modules/llama (llama-swap) and
-# modules/opencode (OpenCode providers). Plain data: `import ./. { inherit lib; }`.
+# The master model list, shared by modules/llm/llama-swap (llama-swap) and
+# modules/llm/opencode (OpenCode providers). Plain data: `import ./. { inherit lib; }`.
 # It is NOT a NixOS module (modules/default.nix doesn't import it).
 #
 #   presets.nix  — model / valV3 / titleModel: fill in defaults -> full spec

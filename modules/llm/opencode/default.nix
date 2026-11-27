@@ -1,7 +1,7 @@
 # opencode — packages + the generated ~/.config/opencode/opencode.json.
 #
 #   settings.nix    — the config as a Nix value (agents, plugins, mcp, ...)
-#   providers.nix   — providers; llama-swap models generated from modules/llm
+#   providers.nix   — providers; llama-swap models generated from modules/llm/models
 #   permissions.nix — global rules + the M2 agents
 #
 # Same idea as services.llama-swap.settings: home-manager's programs.opencode
@@ -29,11 +29,13 @@
 let
   home = config.users.users.melody.home;
   secrets = "${home}/.config/opencode/secrets";
-  catalog = import ../llm { inherit lib; };
+  catalog = import ../models { inherit lib; };
 in
 {
+  imports = [ ./serve.nix ]; # `opencode serve` at boot (headless)
+
   # The CLI comes from programs.opencode below (into melody's profile);
-  # modules/headless.nix runs `opencode serve` from pkgs.opencode directly.
+  # serve.nix (headless) runs `opencode serve` from pkgs.opencode directly.
   environment.systemPackages = [ pkgs.opencode-desktop ];
 
   home-manager.users.melody.programs.opencode = {

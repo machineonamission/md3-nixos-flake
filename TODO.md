@@ -78,7 +78,7 @@ as far as i can tell, qwen-flash-next is like upwards of 100gb and has like ram/
 
 ## [DONE] unified model list that maps to llama swap AND opencode (2026-11-26)
 
-modules/llm is the one list (see AGENTS.md "Models: one list, two consumers").
+modules/llm/models is the one list (see AGENTS.md "Models: one list, two consumers").
 Profiles are tag queries now (`match = [ "dense" "!unsafe" ]`).
 
 ## [ANSWERED] `embeddings enabled with n_batch (2048) > n_ubatch (512)` warning
@@ -89,7 +89,7 @@ harmless: llama.cpp clamps n_batch to n_ubatch itself, that's what the second li
 
 ## [DONE, NOT DEPLOYED] opencode config: jsonc -> nix (2026-11-26)
 
-modules/opencode generates ~/.config/opencode/opencode.json (see AGENTS.md "OpenCode config").
+modules/llm/opencode generates ~/.config/opencode/opencode.json (see AGENTS.md "OpenCode config").
 Secrets already extracted to ~/.config/opencode/secrets/ (gitignored there).
 
 To deploy:
@@ -104,7 +104,7 @@ To deploy:
 - [ ] old-opencode-nix branch (local, rescued ec3f043) contains the token: never push it,
       delete once this is confirmed working
 
-Permissions rewritten for v2 semantics (modules/opencode/permissions.nix header):
+Permissions rewritten for v2 semantics (modules/llm/opencode/permissions.nix header):
 `./*` matched nothing (Isolated could read the project!), agent `shell * allow`
 cancelled the global guards, Builder/Admin sudo + switch/reboot asks were dead.
 - [ ] after deploy: sanity-check prompts per agent (`opencode debug agents --standalone`

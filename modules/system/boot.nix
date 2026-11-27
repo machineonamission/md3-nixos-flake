@@ -1,3 +1,4 @@
+# Bootloader (systemd-boot), kernel, extra kernel modules.
 { pkgs, ... }:
 {
   boot.loader.systemd-boot.enable = true;

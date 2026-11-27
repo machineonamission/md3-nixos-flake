@@ -4,7 +4,7 @@
   home.homeDirectory = "/home/melody";
 
   # User packages. Anything already in environment.systemPackages
-  # (modules/packages.nix) is deliberately not repeated here.
+  # (modules/programs/cli-tools.nix etc.) is deliberately not repeated here.
   home.packages = with pkgs; [
     # Dev tools
     android-studio
@@ -180,7 +180,7 @@
   programs.direnv.enable = true;
   programs.git = {
     enable = true;
-    settings.user = (builtins.head osConfig.programs.git.config).user; # one identity, defined in modules/packages.nix
+    settings.user = (builtins.head osConfig.programs.git.config).user; # one identity, defined in modules/programs/git.nix
   };
   programs.bash = {
     enable = true;

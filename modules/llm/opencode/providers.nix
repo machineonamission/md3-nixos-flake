@@ -1,5 +1,5 @@
 # providers.nix — OpenCode providers. The llama-swap model list is generated
-# from the shared catalog (modules/llm): every model AND every profile becomes
+# from the shared catalog (modules/llm/models): every model AND every profile becomes
 # an OpenCode model with the same id, with reasoning-effort variants.
 #
 # Discovery is OFF for llama-swap on purpose: it can't produce variants, and it

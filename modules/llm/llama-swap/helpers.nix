@@ -1,4 +1,4 @@
-# helpers.nix — turn a model spec (modules/llm) into a llama-swap entry.
+# helpers.nix — turn a model spec (modules/llm/models) into a llama-swap entry.
 #
 #   entry     — spec -> { name; cmd; checkEndpoint; capabilities; metadata; ... }
 #   llama-cpp — the unified CUDA + Vulkan build every entry runs

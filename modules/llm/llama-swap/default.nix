@@ -1,6 +1,6 @@
 # llama-swap — local LLM serving + model swapping (saver + headless modes).
 #
-# The models and profiles themselves live in modules/llm (shared with the
+# The models and profiles themselves live in modules/llm/models (shared with the
 # OpenCode config); this module only turns them into llama-swap settings:
 #   helpers.nix — spec -> llama-swap entry (all the llama-server flags)
 #
@@ -9,7 +9,7 @@
 #
 # Don't use `aliases` / `setParamsByID`: aliases show up as separate /v1/models
 # rows in OpenCode, and setParamsByID overrides the reasoning_effort that
-# OpenCode's variants send. Variants are generated in modules/opencode.
+# OpenCode's variants send. Variants are generated in modules/llm/opencode.
 {
   config,
   lib,
@@ -17,7 +17,7 @@
   ...
 }:
 let
-  catalog = import ../llm { inherit lib; };
+  catalog = import ../models { inherit lib; };
   llama = import ./helpers.nix { inherit lib pkgs-llama; };
   cfg = config.services.llama-swap;
 in

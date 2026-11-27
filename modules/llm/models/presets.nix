@@ -1,7 +1,7 @@
 # presets.nix — turn a short model literal (models.nix) into a full spec.
 #
 # A spec is plain data with every default filled in. It names no backend:
-# modules/llama turns it into llama-server flags, modules/opencode into an
+# modules/llm/llama-swap turns it into llama-server flags, modules/llm/opencode into an
 # OpenCode model entry, so numbers like ctx / maxOutput / reasoningBudget are
 # defined exactly once and both sides always agree.
 #

@@ -1,20 +1,7 @@
-# Background services (all modes).
+# Howdy face unlock (IR camera) for login, sudo, polkit, SDDM, KDE lock screen.
 {
-  services.onedrive.enable = true; # uni files, user-level service
-  services.printing.enable = true;
   services.linux-enable-ir-emitter.enable = true; # IR emitter for howdy's camera
 
-  # Audio: PipeWire. (pipewire.jack is deprecated; use the `pw-jack` wrapper.)
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  # Howdy face unlock
   services.howdy = {
     enable = true;
     control = "sufficient";

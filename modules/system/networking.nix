@@ -1,3 +1,4 @@
+# Hostname, NetworkManager, firewall (off), SSH, Cloudflare WARP.
 {
   networking = {
     hostName = "MelDesktop3";

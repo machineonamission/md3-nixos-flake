@@ -10,23 +10,35 @@ done by the user.
 flake.nix               inputs + the one nixosConfigurations.MelDesktop3
 configuration.nix       host entry point (imports, a few host vars, stateVersion)
 hardware-configuration.nix   generated, do not edit
-modules/
-  default.nix           imports every module (all modes)
-  meldesktop.nix        boot modes (specialisations), meldesktop.* options
-  nix.nix               nix daemon settings, substituters, nixpkgs.config
-  desktop.nix           SDDM/Plasma/Xorg/flatpak/xrdp/run-on-igpu   (mkIf desktop)
-  headless.nix          TTY autologin + NVIDIA-for-CUDA without Xorg (mkIf headless)
-  base.nix hardware.nix networking.nix services.nix packages.nix
-  portable.nix          nix-ld library set + run-portable wrapper
-  icon-fix.nix          /usr/share/{fonts,icons,themes} bindfs mounts
-  llm/                  THE model list (plain data, not a module), shared by
-                        llama/ and opencode/: models.nix (models keyed by routing
+modules/                one concern per file; the file name says what's in it.
+  default.nix           imports every module (all modes), grouped + annotated
+  modes/                boot modes (see below)
+    specialisations.nix   meldesktop.mode/desktop/llm options + the specialisations
+    mode-command.nix      the `mode` show/switch CLI
+    saver.nix             (saver) session env off the dGPU, KWin exempt
+    headless.nix          (headless) TTY autologin + NVIDIA-for-CUDA without Xorg
+  system/               nix.nix (daemon, substituters, nixpkgs.config), boot.nix
+                        (bootloader, kernel, kernel modules), users, locale, fonts,
+                        networking (hostname/NM/firewall/ssh/warp), audio (pipewire)
+  hardware/             nvidia.nix, igpu.nix (meldesktop.igpuEnv/intelIcd options,
+                        run-on-igpu), firmware, storage (ntfs/fuse), bluetooth,
+                        printing, openrgb, vr (wivrn), face-unlock (howdy)
+  desktop/              (mkIf desktop) plasma.nix (SDDM + aurora theme in sddm/,
+                        Plasma, Xorg, kwallet), flatpak.nix, remote-desktop.nix (xrdp)
+  programs/             cli-tools.nix (systemPackages), git.nix (system git identity),
+                        apps.nix (firefox, steam, kdeconnect, onedrive)
+  compat/               non-Nix software: portable.nix (nix-ld + run-portable),
+                        appimage.nix, usr-share-mounts.nix (bindfs for flatpak)
+  llm/
+    models/             THE model list (plain data, not a module), shared by
+                        llama-swap/ and opencode/: models.nix (models keyed by routing
                         group, with tags), profiles.nix (model sets picked by tag
                         query), presets.nix (defaults), default.nix (resolves it)
-  llama/                llama-swap: helpers.nix (spec -> llama-server flags)
-  opencode/             opencode packages + generated ~/.config/opencode/opencode.json
+    llama-swap/         (mkIf meldesktop.llm) helpers.nix (spec -> llama-server flags)
+    opencode/           opencode packages + generated ~/.config/opencode/opencode.json
                         (home-manager programs.opencode): settings.nix,
-                        providers.nix (models from llm/), permissions.nix
+                        providers.nix (models from models/), permissions.nix,
+                        serve.nix (headless: `opencode serve` at boot)
 home/                   home-manager (melody.nix, spotify.nix)
 docs/                   reference: llama-server --help, llama-swap example config
 scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch)
@@ -37,12 +49,12 @@ scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch
 One system, three boot-menu entries:
 - `normal` (default): full desktop, everything on the dGPU, no llama-swap.
 - `saver`: desktop + llama-swap; all userspace Vulkan/GL renders on the iGPU
-  (meldesktop.igpuEnv: Vulkan/GL on the iGPU, Electron in software; KWin exempt)
+  (meldesktop.igpuEnv in hardware/igpu.nix: Vulkan/GL on the iGPU, Electron in software; KWin exempt)
   to save VRAM. Takes effect at login: after a live `mode saver`, log out + in.
 - `headless`: raw TTY, autologin; llama-swap, `opencode serve` (localhost:4096,
   reach via `ssh -L 4096:localhost:4096`), openrgb all start at boot.
 
-`meldesktop.mode` is set per specialisation in modules/meldesktop.nix; modules
+`meldesktop.mode` is set per specialisation in modules/modes/specialisations.nix; modules
 branch on it with `lib.mkIf` (never in `imports`, that would recurse).
 `config.meldesktop.desktop` is the shorthand for "not headless".
 
@@ -65,11 +77,11 @@ readlink /run/current-system           # name ends in -saver / -headless when in
 
 ## Models: one list, two consumers
 
-Add/change a model or profile ONLY in modules/llm. It becomes a llama-swap model
+Add/change a model or profile ONLY in modules/llm/models. It becomes a llama-swap model
 or selector AND an OpenCode model `llama-swap/<id>` (variants low/medium/high/
 noreasoning are generated; llama-swap discovery in OpenCode is off on purpose).
 Profiles pick targets by tag (`match = [ "dense" "!unsafe" ]`, `prefer = [...]`
-first); see the header of modules/llm/profiles.nix. Show what a profile resolves to:
+first); see the header of modules/llm/models/profiles.nix. Show what a profile resolves to:
 `nix eval .#nixosConfigurations.MelDesktop3.config.specialisation.saver.configuration.services.llama-swap.settings.selectors.<id>.targets`
 
 ## OpenCode config
@@ -90,6 +102,6 @@ Pure refactors must not change `nix eval --raw .#nixosConfigurations.MelDesktop3
 That single drv covers all three modes (the specialisations are inputs of it).
 llama-swap settings and opencode.json are validated against their schemas at
 build time, so run a real `nixos-rebuild build`, not just eval, after touching
-modules/llm, modules/llama or modules/opencode. To check a change to the llama
+anything under modules/llm. To check a change to the llama
 side alone, diff `nix eval --json ...specialisation.saver.configuration.services.llama-swap.settings`
 before/after.
