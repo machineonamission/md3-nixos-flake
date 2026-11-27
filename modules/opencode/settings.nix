@@ -11,7 +11,7 @@
   secrets,
 }:
 let
-  permissions = import ./permissions.nix { inherit home; };
+  permissions = import ./permissions.nix { };
   secret = name: "{file:${secrets}/${name}}";
 in
 {
