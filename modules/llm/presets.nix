@@ -18,7 +18,11 @@ let
   #   ctx           — context window (-c, and OpenCode's limit)
   #   fitCtx        — if set, -c is omitted and `--fit on` may shrink context to
   #                   this floor before it offloads layers to system RAM
-  #   fitt          — --fit target margin in MiB (embedded MTP heads want 512)
+  #   fitt          — --fit headroom in MiB left free on the dGPU AFTER loading.
+  #                   --fit already measures free VRAM at load time; this only
+  #                   guards against something else (now ~only KWin: saver keeps
+  #                   apps off the dGPU) growing mid-generation = CUDA OOM.
+  #                   Embedded MTP heads allocate outside --fit's estimate: +256.
   #   kvq           — KV-cache quant for K and V. Keep them equal: only symmetric
   #                   q8_0 has a CUDA FlashAttention kernel.
   #   np            — parallel slots (1 = full context, no KV duplication)
@@ -38,7 +42,7 @@ let
       ctx ? 262144,
       fitCtx ? null,
       mtp ? null,
-      fitt ? (if mtp == "self" then 512 else 256),
+      fitt ? (if mtp == "self" then 384 else 128),
       kvq ? "q8_0",
       np ? 1,
       quant ? "APEX-I-NanoPlus",
