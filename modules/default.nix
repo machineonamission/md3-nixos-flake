@@ -23,6 +23,7 @@
     ./hardware/igpu.nix # Intel iGPU, meldesktop.igpuEnv, run-on-igpu
     ./hardware/firmware.nix # firmware, microcode, fwupd
     ./hardware/storage.nix # ntfs, fuse, partition manager
+    ./hardware/disks.nix # smartd, btrfs tools, (later) HDD + scratch mounts
     ./hardware/bluetooth.nix
     ./hardware/printing.nix
     ./hardware/openrgb.nix

@@ -22,7 +22,8 @@ modules/                one concern per file; the file name says what's in it.
                         networking (hostname/NM/firewall/ssh/warp), audio (pipewire)
   hardware/             nvidia.nix, igpu.nix (meldesktop.igpuEnv/intelIcd options,
                         run-on-igpu), firmware, storage (ntfs/fuse), bluetooth,
-                        printing, openrgb, vr (wivrn), face-unlock (howdy)
+                        printing, openrgb, vr (wivrn), face-unlock (howdy),
+                        disks.nix (the 3 internal disks: smartd, btrfs tools, mounts)
   desktop/              (mkIf desktop) plasma.nix (SDDM + aurora theme in sddm/,
                         Plasma, Xorg, kwallet), flatpak.nix, remote-desktop.nix (xrdp)
   programs/             cli-tools.nix (systemPackages), git.nix (system git identity),
@@ -40,7 +41,8 @@ modules/                one concern per file; the file name says what's in it.
                         providers.nix (models from models/), permissions.nix,
                         serve.nix (headless: `opencode serve` at boot)
 home/                   home-manager (melody.nix, spotify.nix)
-docs/                   reference: llama-server --help, llama-swap example config
+docs/                   reference: llama-server --help, llama-swap example config,
+                        storage-migration.md (disk layout + in-progress btrfs migration runbook)
 scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch)
 ```
 
