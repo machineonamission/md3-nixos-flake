@@ -53,16 +53,20 @@ scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch
 ## Boot modes = specialisations
 
 One system, three boot-menu entries:
-- `normal` (default): full desktop, everything on the dGPU, no llama-swap.
-- `saver`: desktop + llama-swap; all userspace Vulkan/GL renders on the iGPU
+- `normal` (default): full desktop, everything on the dGPU. llama-swap runs as a ghost:
+  `--fit` headroom 1536 MiB, every model's idle ttl forced to 60 s, `voice` CPU-only.
+- `saver`: desktop + llama-swap (fit headroom 512 MiB); all userspace Vulkan/GL renders on the iGPU
   (meldesktop.igpuEnv in hardware/igpu.nix: Vulkan/GL on the iGPU, Electron in software; KWin exempt)
   to save VRAM. Takes effect at login: after a live `mode saver`, log out + in.
-- `headless`: raw TTY, autologin; llama-swap, `opencode serve` (localhost:4096,
+- `headless`: raw TTY (firmware framebuffer, no nvidia_drm), autologin; llama-swap (fit headroom 128 MiB), `opencode serve` (localhost:4096,
   reach via `ssh -L 4096:localhost:4096`), openrgb all start at boot.
 
 `meldesktop.mode` is set per specialisation in modules/modes/specialisations.nix; modules
 branch on it with `lib.mkIf` (never in `imports`, that would recurse).
 `config.meldesktop.desktop` is the shorthand for "not headless".
+llama-swap runs in every mode; `meldesktop.llm.fitTarget` (--fit headroom, MiB) and
+`meldesktop.llm.ttl` (forced idle unload, normal only) are set per mode there. A model's
+`fitt` in the model list overrides the mode's headroom (default null).
 
 ## Commands
 
@@ -94,6 +98,11 @@ Profiles pick targets by tag (`match = [ "dense" "!unsafe" ]`, `prefer = [...]`
 first); see the header of modules/llm/models/profiles.nix. Show what a profile resolves to:
 `nix eval .#nixosConfigurations.MelDesktop3.config.specialisation.saver.configuration.services.llama-swap.settings.selectors.<id>.targets`
 `fallback = [...]` puts ids last.
+Reasoning efforts: each model declares the `efforts` its chat template accepts (default
+low/medium/high; the EfficientThink/DAU family is low/medium/xhigh). A selector offers the
+union of its targets' efforts, but its DEFAULT effort is always one the first (preferred)
+target accepts. `flashNext` (presets.nix) is the preset for the Qwen3.8 Flash MoE slices
+(thinking off by default, 4096-token budget).
 
 ### Home Assistant voice (`voice` selector)
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded

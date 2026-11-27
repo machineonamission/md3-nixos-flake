@@ -5,21 +5,22 @@
 # Discovery is OFF for llama-swap on purpose: it can't produce variants, and it
 # lists models without profiles. The catalog already knows everything.
 #
+# Each model declares the reasoning_effort levels its chat template accepts
+# (modules/llm/models/models.nix `efforts`; standard APEX = low/medium/high, the
+# EfficientThink/DAU template family = low/medium/xhigh). A selector (profile)
+# offers the union of its targets' efforts (modules/llm/models/default.nix), so
+# OpenCode's capabilities + generated variants always match what a target will
+# accept — no variant can send an effort the model rejects.
+#
 #   llama-swap/<id>               -> the spec's default `effort`
-#   llama-swap/<id>#low|medium|high
-#                                 -> request-body reasoning_effort (thinking ON)
+#   llama-swap/<id>#<effort>      -> request-body reasoning_effort (thinking ON),
+#                                   <effort> drawn from the model/selector's efforts
 #   llama-swap/<id>#noreasoning   -> chat_template_kwargs.enable_thinking = false:
 #                                    no <think> at all. Must be a JSON BOOLEAN,
 #                                    llama.cpp rejects a quoted string.
 { lib, catalog }:
 let
   host = "192.168.0.3"; # this desktop on the LAN (llama-swap listens on 0.0.0.0)
-
-  efforts = [
-    "low"
-    "medium"
-    "high"
-  ];
 
   # effort "none" also disables the thinking template, otherwise llama.cpp
   # still thinks and just ignores the effort
@@ -32,12 +33,20 @@ let
       body.chat_template_kwargs.enable_thinking = false;
     };
 
-  variants = map (e: { id = e; } // effortSettings e) efforts ++ [
-    ({ id = "noreasoning"; } // effortSettings "none")
-  ];
-
   toModel =
     s:
+    # s.efforts: the reasoning levels this model/selector actually supports
+    let
+      efforts =
+        s.efforts or [
+          "low"
+          "medium"
+          "high"
+        ];
+      variants = map (e: { id = e; } // effortSettings e) efforts ++ [
+        ({ id = "noreasoning"; } // effortSettings "none")
+      ];
+    in
     {
       name = if s.kind == "profile" then "Profile: ${s.name}" else s.name;
       type = "chat";
@@ -55,6 +64,7 @@ let
           supported = true;
           toggle = true;
           budget.max = s.reasoningBudget;
+          # reflect the model's / selector's actually-supported reasoning levels
           effort = [ "none" ] ++ efforts;
         };
       };

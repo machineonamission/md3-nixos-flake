@@ -7,6 +7,7 @@
 #
 #   model      — a main coder on the RTX (CUDA0), full APEX-I-NanoPlus flag set
 #   valV3      — `model` preset for the Qwen3.8-27B VAL-APEX-I-NanoPlus-V3 family
+#   flashNext  — `model` preset for the Qwen3.8-Flash-Coder / Flash-Next MoE slices
 #   titleModel — a tiny title-generation model on the Intel iGPU (Vulkan0)
 { lib }:
 let
@@ -18,27 +19,31 @@ let
   #   ctx           — context window (-c, and OpenCode's limit)
   #   fitCtx        — if set, -c is omitted and `--fit on` may shrink context to
   #                   this floor before it offloads layers to system RAM
-  #   fitt          — --fit headroom in MiB left free on the dGPU AFTER loading.
-  #                   --fit already measures free VRAM at load time; this only
-  #                   guards against something else (now ~only KWin: saver keeps
-  #                   apps off the dGPU) growing mid-generation = CUDA OOM.
-  #                   Embedded MTP heads allocate outside --fit's estimate: +256.
-  #                   2026-11-27: 128 was too thin. Tiel-Coder-35B-A3B in saver
-  #                   aborted with "CUDA error: out of memory" in process_ubatch
-  #                   on the FIRST request, even "say hi" (--no-warmup defers the
-  #                   compute-buffer hit), with ~0.8 GB of other dGPU use (KWin +
-  #                   an Electron GPU process). Raised to 768 / 1024.
-  #   fittHeadless  — the --fit-target to use in HEADLESS mode only (default null
-  #                   = use `fitt`). Headless has no desktop, so nothing else
-  #                   competes for VRAM and the headroom guard is pure waste: set
-  #                   this to 0 to let the model claim the whole card.
+  #   fitt          — per-model override of the --fit headroom (MiB), default
+  #                   null = use the mode's `meldesktop.llm.fitTarget`
+  #                   (modes/specialisations.nix: normal 1536, saver 512,
+  #                   headless 128). --fit already measures free VRAM at load
+  #                   time; the headroom only guards against something else
+  #                   (KWin, an Electron GPU process) growing mid-generation =
+  #                   CUDA OOM. Too thin does bite: 2026-11-27 Tiel-Coder-35B-A3B
+  #                   in saver at 128 aborted with "CUDA error: out of memory" in
+  #                   process_ubatch on the FIRST request (--no-warmup defers the
+  #                   compute-buffer hit), with ~0.8 GB of other dGPU use.
   #   kvq           — KV-cache quant for K and V. Keep them equal: only symmetric
   #                   q8_0 has a CUDA FlashAttention kernel.
   #   np            — parallel slots (1 = full context, no KV duplication)
   #   quant         — label surfaced in metadata
   #   mtp           — speculative decoding, see mtpFlags in llama/helpers.nix:
   #                   null | "self" | { file; repo ? hf; nMax ? 2; device ? "igpu"; }
-  #   effort        — OpenCode's default reasoning effort (low|medium|high|none)
+  #   effort        — OpenCode's default reasoning effort (default of the model's
+  #                   supported `efforts`; low|medium|high for standard models,
+  #                   low|medium|xhigh for the EfficientThink/DAU template family)
+  #   reasoningBudget — hard cap (tokens) on the thinking phase (--reasoning-budget)
+  #   efforts       — the reasoning_effort levels this model's chat template
+  #                   actually accepts (reflected in OpenCode's capabilities and
+  #                   generated variants). Standard APEX models use low|medium|high;
+  #                   the EfficientThink family uses low|medium|xhigh (its template
+  #                   rejects "high"). Set this per model in models.nix.
   #   tags          — free-form labels profiles.nix matches on (family, "unsafe",
   #                   "moe"/"dense", ...). default.nix adds the derivable ones.
   #   extra         — raw llama-server flags appended at the end
@@ -51,13 +56,18 @@ let
       ctx ? 262144,
       fitCtx ? null,
       mtp ? null,
-      fitt ? (if mtp == "self" then 1024 else 768),
-      fittHeadless ? null,
+      fitt ? null,
       kvq ? "q8_0",
       np ? 1,
       quant ? "APEX-I-NanoPlus",
       offloadMMProj ? false,
       effort ? "medium",
+      reasoningBudget ? 16384,
+      efforts ? [
+        "low"
+        "medium"
+        "high"
+      ],
       tags ? [ ],
       extra ? [ ],
     }:
@@ -66,8 +76,8 @@ let
       tools = true;
       maxOutput = 32768;
       # hard cap on the thinking phase so a reasoning doom-loop can't eat the context
-      reasoningBudget = 16384;
       inherit
+        reasoningBudget
         name
         hf
         hfFile
@@ -76,12 +86,12 @@ let
         fitCtx
         mtp
         fitt
-        fittHeadless
         kvq
         np
         quant
         offloadMMProj
         effort
+        efforts
         tags
         extra
         ;
@@ -98,13 +108,43 @@ let
         ctx = 131072;
         fitCtx = 131072;
         mtp = "self";
-        # Headless has no desktop, so no KWin/Electron to guard against: claim
-        # the whole card (no --fit headroom) when there's no one to log in.
-        fittHeadless = 128;
       }
       // args
       // {
         tags = [ "dense" ] ++ args.tags or [ ];
+      }
+    );
+
+  # Qwen3.8 "Flash" (Flash-Coder, Flash-Next): MoE slices that are NOT a 27B.
+  # IsValorum's Flash-Coder is a `moe-slice` of the 85 GB base (352 of 512 experts
+  # pruned against English Python + SWE-bench, 2.90 BPW), so it is a fragile
+  # English-only coding specialist, and its own chat template (always opens
+  # <think> unless enable_thinking=false) pairs badly with a long thinking budget:
+  # at the plain `model` defaults it looked fast (~46 t/s) but produced garbage
+  # ("return null;" loops after a ~16k-token "Thought 5m"). So here:
+  #   - thinking is OFF by default (effort "none" -> enable_thinking=false -> the
+  #     template emits an empty <think></think>); low/medium/high/xhigh variants
+  #     still turn it on, but capped at 4096 tokens instead of 16384
+  #   - efforts are what the template accepts (low|medium|high|xhigh + none/off)
+  # Untested on the box: the debugging session couldn't load it next to the live
+  # coder (VRAM contention), so if it still misbehaves look at ctx first (the
+  # vendor quickstart uses 65536, we default to the native 262144).
+  flashNext =
+    args:
+    model (
+      {
+        effort = "none";
+        efforts = [
+          "low"
+          "medium"
+          "high"
+          "xhigh"
+        ];
+        reasoningBudget = 4096;
+      }
+      // args
+      // {
+        tags = [ "qwen3.8-flash" ] ++ args.tags or [ ];
       }
     );
 
@@ -118,6 +158,11 @@ let
       reasoningBudget,
       presencePenalty,
       effort ? "none",
+      efforts ? [
+        "low"
+        "medium"
+        "high"
+      ],
       tags ? [ ],
     }:
     {
@@ -132,6 +177,7 @@ let
         reasoningBudget
         presencePenalty
         effort
+        efforts
         tags
         ;
     };
@@ -157,6 +203,11 @@ let
       cpus ? "0-15",
       threads ? 8,
       batchThreads ? 16,
+      efforts ? [
+        "low"
+        "medium"
+        "high"
+      ],
       tags ? [ ],
       extra ? [ ],
     }:
@@ -177,6 +228,7 @@ let
         cpus
         threads
         batchThreads
+        efforts
         tags
         extra
         ;
@@ -186,6 +238,7 @@ in
   inherit
     model
     valV3
+    flashNext
     titleModel
     voiceModel
     ;

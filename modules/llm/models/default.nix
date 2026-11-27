@@ -52,6 +52,30 @@ let
       ids = map known (p.prefer or [ ] ++ p.targets or [ ] ++ matched ++ p.fallback or [ ]);
       targets = if ids == [ ] then fail "matches no models" else lib.unique ids;
       specs = map (t: models.${t}) targets;
+      # reasoning_effort levels a model accepts (presets.nix `efforts`)
+      effortsOf =
+        s:
+        s.efforts or [
+          "low"
+          "medium"
+          "high"
+        ];
+      # The levels this selector OFFERS: the union of every target's `efforts`,
+      # in weakest-to-strongest order. A variant the currently routed target
+      # doesn't accept is rejected by its chat template (e.g. "high" on the
+      # EfficientThink family, which only knows xhigh), hence the default below.
+      efforts = lib.filter (e: lib.any (s: lib.elem e (effortsOf s)) specs) [
+        "low"
+        "medium"
+        "high"
+        "xhigh"
+      ];
+      # The DEFAULT effort must be accepted by the first (preferred) target, the
+      # one `warm` routes to: keep profiles.nix's choice if it is, else that
+      # target's strongest level (a "high" selector on an xhigh-family target
+      # defaults to xhigh instead of an effort the template rejects).
+      firstEfforts = effortsOf (lib.head specs);
+      effort = if p ? effort && lib.elem p.effort firstEfforts then p.effort else lib.last firstEfforts;
     in
     {
       strategy = "warm";
@@ -66,7 +90,7 @@ let
       spec = {
         kind = "profile";
         inherit (p) name;
-        effort = p.effort or (lib.head specs).effort;
+        inherit efforts effort;
         # ctx: context window OpenCode advertises. Set per selector in
         # profiles.nix; falls back to the smallest target's ctx so no target is
         # ever handed a prompt it can't take.

@@ -1,4 +1,8 @@
-# llama-swap — local LLM serving + model swapping (saver + headless modes).
+# llama-swap — local LLM serving + model swapping (all modes).
+#
+# Every mode runs it; how politely is per mode (modes/specialisations.nix):
+# meldesktop.llm.fitTarget is the --fit headroom, meldesktop.llm.ttl (normal
+# only) forces a short idle-unload on every model so it stays a ghost.
 #
 # The models and profiles themselves live in modules/llm/models (shared with the
 # OpenCode config); this module only turns them into llama-swap settings:
@@ -23,11 +27,24 @@ let
   llama = import ./helpers.nix {
     inherit lib pkgs-llama;
     llama-cpp-src = inputs.llama-cpp;
-    # Headless has no desktop, so per-model `fittHeadless` overrides apply here
-    # (helpers.nix); normal/saver keep the regular `fitt` headroom guard.
-    headless = config.meldesktop.mode == "headless";
+    inherit (config.meldesktop.llm) fitTarget; # per-mode --fit headroom
   };
   cfg = config.services.llama-swap;
+
+  # Normal mode: the desktop owns the dGPU, and the GPU voice model claims a fixed
+  # ~8 GB (-ngl all, no --fit), so it never loads there: `voice` is CPU-only.
+  selectorTargets =
+    targets:
+    if config.meldesktop.mode == "normal" then
+      lib.filter (
+        t:
+        let
+          s = catalog.models.${t};
+        in
+        !(s.kind == "voice" && s.device == "cuda")
+      ) targets
+    else
+      targets;
 
   # Capacity router (routing below). One pool, the RTX's VRAM in MiB. Coders
   # use `--fit on`, which grabs whatever VRAM is free, so each claims the whole
@@ -49,7 +66,7 @@ let
     else
       { };
 in
-lib.mkIf config.meldesktop.llm {
+{
   # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
   environment.systemPackages = [
     llama.llama-cpp
@@ -62,7 +79,12 @@ lib.mkIf config.meldesktop.llm {
     inherit (catalog) port;
     listenAddress = "0.0.0.0"; # reachable from other devices on the LAN
     settings = {
-      models = lib.mapAttrs (_: s: llama.entry s // routing s) catalog.models;
+      models = lib.mapAttrs (
+        _: s:
+        llama.entry s
+        // routing s
+        // lib.optionalAttrs (config.meldesktop.llm.ttl != null) { inherit (config.meldesktop.llm) ttl; }
+      ) catalog.models;
       selectors = lib.mapAttrs (
         _: p:
         {
@@ -70,8 +92,8 @@ lib.mkIf config.meldesktop.llm {
             strategy
             name
             description
-            targets
             ;
+          targets = selectorTargets p.targets;
         }
         // lib.optionalAttrs (p ? settings) { inherit (p) settings; }
       ) catalog.profiles;

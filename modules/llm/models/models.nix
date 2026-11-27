@@ -12,6 +12,7 @@
 {
   model,
   valV3,
+  flashNext,
   titleModel,
   voiceModel,
 }:
@@ -120,6 +121,12 @@
 
     "Huihui-Qwen3.8-27B-Abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B (Abliterated, VAL-APEX NanoPlus V3)";
+      # DAU reasoning template: accepts low|medium|xhigh (rejects "high")
+      efforts = [
+        "low"
+        "medium"
+        "xhigh"
+      ];
       tags = [
         "qwen3.8"
         "unsafe"
@@ -131,6 +138,12 @@
     # Ships an embedded MTP head AND a dflash sidecar; hfFile avoids the collision.
     "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B EfficientThink (VAL-APEX NanoPlus V3)";
+      # DAU reasoning template: accepts low|medium|xhigh (rejects "high")
+      efforts = [
+        "low"
+        "medium"
+        "xhigh"
+      ];
       tags = [ "qwen3.8" ];
       hf = "IsValorum/Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3.gguf";
@@ -139,6 +152,12 @@
     # Projector embedded in the GGUF (no separate mmproj file).
     "Qwen3.8-27B-TTURBO-709-Uncen-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Qwen3.8 27B TTURBO-709 Unc (VAL-APEX NanoPlus V3)";
+      # DAU reasoning template: accepts low|medium|xhigh (rejects "high")
+      efforts = [
+        "low"
+        "medium"
+        "xhigh"
+      ];
       tags = [
         "qwen3.8"
         "unsafe"
@@ -149,6 +168,12 @@
 
     "Huihui-Qwen3.8-27B-Coder390-EfficientThink-abliterated-VAL-APEX-I-NanoPlus-V3-GGUF" = valV3 {
       name = "Huihui Qwen3.8 27B Coder390 EfficientThink (VAL-APEX NanoPlus V3, Abliterated)";
+      # DAU reasoning template: accepts low|medium|xhigh (rejects "high")
+      efforts = [
+        "low"
+        "medium"
+        "xhigh"
+      ];
       tags = [
         "qwen3.8"
         "unsafe"
@@ -169,7 +194,7 @@
 
     # Same family but text-only with no MTP head, so a plain `model`.
     # ctx pinned to the family's 131072 (the plain preset defaults to 262144,
-    # which would overstate the window in OpenCode); fittHeadless like valV3.
+    # which would overstate the window in OpenCode).
     "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
       name = "Arete 27B (VAL-APEX NanoPlus V3)";
       tags = [
@@ -179,7 +204,6 @@
       hf = "IsValorum/Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Arete-27B-VAL-APEX-I-NanoPlus-V3.gguf";
       ctx = 131072;
-      fittHeadless = 0;
     };
 
     # ---- APEX-I-NanoPlus: text ---------------------------------------------
@@ -190,17 +214,15 @@
       ctx = 131072;
     };
 
-    "Qwen3.8-Flash-Coder" = model {
+    "Qwen3.8-Flash-Coder" = flashNext {
       name = "Qwen3.8 Flash Coder (NanoPlus)";
-      tags = [ "qwen3.8-flash" ];
       hf = "IsValorum/Qwen3.8-Flash-Coder-APEX-I-NanoPlus-GGUF";
     };
 
     # No APEX quant exists for Flash Next (~167 GB BF16 MoE). zephel01's L448 is a
     # single quant (clean for bare -hf) tuned for 12 GB VRAM / 32 GB RAM.
-    "Qwen3.8-Flash-Next" = model {
+    "Qwen3.8-Flash-Next" = flashNext {
       name = "Qwen3.8 Flash Next (L448, 16GB)";
-      tags = [ "qwen3.8-flash" ];
       hf = "zephel01/Qwen3.8-Flash-Next-12G32G-GGUF";
       quant = "L448 (zephel01, 16GB)";
     };

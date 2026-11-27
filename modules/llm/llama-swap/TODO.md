@@ -14,6 +14,10 @@
 - [ ] `server_prepa: embeddings enabled with n_batch (2048) > n_ubatch (512)` warning:
       harmless (llama.cpp clamps n_batch itself).
 
+- [ ] Qwen3.8-Flash-Coder gave garbage ("return null;" loops, ~46 t/s). `flashNext` preset
+      (thinking off by default, 4096 budget) is the untested fix for the suspected thinking
+      doom-loop. Verify on the box; if still bad try ctx 65536 (vendor quickstart) and min-p 0.
+
 ## Gotchas
 - mmproj stays on the CPU (`--no-mmproj-offload`): Intel ANV Vulkan garbles clip_encode.
 - `--load-mode mlock` needs a raised `ulimit -l`; we use `auto`.
