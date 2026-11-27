@@ -67,7 +67,10 @@ let
         kind = "profile";
         inherit (p) name;
         effort = p.effort or (lib.head specs).effort;
-        ctx = minOf (s: s.ctx) specs;
+        # ctx: context window OpenCode advertises. Set per selector in
+        # profiles.nix; falls back to the smallest target's ctx so no target is
+        # ever handed a prompt it can't take.
+        ctx = p.ctx or (minOf (s: s.ctx) specs);
         maxOutput = minOf (s: s.maxOutput) specs;
         reasoningBudget = minOf (s: s.reasoningBudget) specs;
         image = lib.all (s: s.image) specs;

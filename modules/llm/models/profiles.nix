@@ -13,6 +13,10 @@
 #   fallback — ids put LAST (after matches): the warm strategy's last resort.
 # Unknown ids, and a profile that ends up with no targets, fail the build.
 #
+#   ctx      — context window OpenCode advertises for this selector. Set it to
+#              the context every target actually supports (the smallest one, so no
+#              target is ever handed a prompt it can't take). Falls back to the
+#              smallest target's ctx if omitted.
 #   effort   — OpenCode's default reasoning effort when no variant is picked
 #              (defaults to the first target's)
 #   strategy — llama-swap selector strategy (default "warm": keeps targets warm
@@ -28,6 +32,7 @@
   coder = {
     name = "Coder";
     description = "Coder GPU Aligned";
+    ctx = 131072; # EfficientThink (131072) is the smallest target; Tiel is 262144
     effort = "medium";
     targets = [
       "Qwen3.8-27B-EfficientThink-VAL-APEX-I-NanoPlus-V3-GGUF"
@@ -38,6 +43,7 @@
   coder-unsafe = {
     name = "Coder (Unsafe)";
     description = "Unsafe/Abliterated Coder GPU";
+    ctx = 262144;
     effort = "high";
     match = [
       "tiel"
@@ -49,6 +55,7 @@
   coder-mtp = {
     name = "Coder (MTP)";
     description = "MTP Speculative Tiel GPU";
+    ctx = 262144;
     effort = "high";
     match = [
       "tiel"
@@ -60,6 +67,7 @@
   moe = {
     name = "MoE 35B";
     description = "Other 35B-A3B / 29B / Occamy MoE GPU";
+    ctx = 262144;
     effort = "medium";
     match = [ "moe" ];
     prefer = [ "Tiel-Coder-35B-A3B" ];
@@ -68,6 +76,7 @@
   hybrid = {
     name = "Hybrid Coder";
     description = "Dense/Hybrid Qwen3.8-27B Coder GPU";
+    ctx = 131072;
     effort = "high";
     match = [
       "dense"
@@ -79,6 +88,7 @@
   hybrid-unsafe = {
     name = "Hybrid Coder (Unsafe)";
     description = "Uncensored/Abliterated Dense/Hybrid Qwen3.8-27B Coder GPU";
+    ctx = 131072;
     effort = "high";
     match = [
       "dense"
@@ -90,6 +100,7 @@
   title = {
     name = "Title";
     description = "Title Generation (No Reasoning)";
+    ctx = 8192; # Qwen3.5-2B (preferred) is the smallest title target
     match = [ "title" ];
     prefer = [ "Qwen3.5-2B" ];
   };
@@ -114,6 +125,7 @@
   voice = {
     name = "Voice";
     description = "HA voice: GPU voice model when no coder holds the RTX, else CPU model";
+    ctx = 16384;
     effort = "low";
     strategy = "fit";
     settings.no_evict = true;
