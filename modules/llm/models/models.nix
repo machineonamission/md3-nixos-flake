@@ -168,6 +168,8 @@
     };
 
     # Same family but text-only with no MTP head, so a plain `model`.
+    # ctx pinned to the family's 131072 (the plain preset defaults to 262144,
+    # which would overstate the window in OpenCode); fittHeadless like valV3.
     "Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF" = model {
       name = "Arete 27B (VAL-APEX NanoPlus V3)";
       tags = [
@@ -176,6 +178,8 @@
       ];
       hf = "IsValorum/Arete-27B-VAL-APEX-I-NanoPlus-V3-GGUF";
       hfFile = "Arete-27B-VAL-APEX-I-NanoPlus-V3.gguf";
+      ctx = 131072;
+      fittHeadless = 0;
     };
 
     # ---- APEX-I-NanoPlus: text ---------------------------------------------

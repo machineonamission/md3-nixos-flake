@@ -28,6 +28,10 @@ let
   #                   on the FIRST request, even "say hi" (--no-warmup defers the
   #                   compute-buffer hit), with ~0.8 GB of other dGPU use (KWin +
   #                   an Electron GPU process). Raised to 768 / 1024.
+  #   fittHeadless  — the --fit-target to use in HEADLESS mode only (default null
+  #                   = use `fitt`). Headless has no desktop, so nothing else
+  #                   competes for VRAM and the headroom guard is pure waste: set
+  #                   this to 0 to let the model claim the whole card.
   #   kvq           — KV-cache quant for K and V. Keep them equal: only symmetric
   #                   q8_0 has a CUDA FlashAttention kernel.
   #   np            — parallel slots (1 = full context, no KV duplication)
@@ -48,6 +52,7 @@ let
       fitCtx ? null,
       mtp ? null,
       fitt ? (if mtp == "self" then 1024 else 768),
+      fittHeadless ? null,
       kvq ? "q8_0",
       np ? 1,
       quant ? "APEX-I-NanoPlus",
@@ -71,6 +76,7 @@ let
         fitCtx
         mtp
         fitt
+        fittHeadless
         kvq
         np
         quant
@@ -92,6 +98,9 @@ let
         ctx = 131072;
         fitCtx = 131072;
         mtp = "self";
+        # Headless has no desktop, so no KWin/Electron to guard against: claim
+        # the whole card (no --fit headroom) when there's no one to log in.
+        fittHeadless = 0;
       }
       // args
       // {

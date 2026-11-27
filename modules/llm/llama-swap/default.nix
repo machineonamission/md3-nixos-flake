@@ -23,6 +23,9 @@ let
   llama = import ./helpers.nix {
     inherit lib pkgs-llama;
     llama-cpp-src = inputs.llama-cpp;
+    # Headless has no desktop, so per-model `fittHeadless` overrides apply here
+    # (helpers.nix); normal/saver keep the regular `fitt` headroom guard.
+    headless = config.meldesktop.mode == "headless";
   };
   cfg = config.services.llama-swap;
 

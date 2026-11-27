@@ -6,6 +6,7 @@
   lib,
   pkgs-llama,
   llama-cpp-src, # flake input `llama-cpp` (master, flake = false)
+  headless, # true in headless mode: a spec's `fittHeadless` (if set) replaces `fitt`
 }:
 let
   # One binary that sees BOTH devices:
@@ -90,7 +91,9 @@ let
         "--repack"
         "--fit on"
         (if s.fitCtx != null then "--fit-ctx ${toString s.fitCtx}" else "-c ${toString s.ctx}")
-        "-fitt ${toString s.fitt}"
+        # Headless has no desktop competing for VRAM, so a spec's fittHeadless
+        # (e.g. 0 = claim the whole card) replaces the headroom guard.
+        "-fitt ${toString (if headless && s.fittHeadless != null then s.fittHeadless else s.fitt)}"
         (if s.offloadMMProj then "--mmproj-offload --mmproj-device Vulkan0" else "--no-mmproj-offload")
         # vendor sampling defaults
         "--temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.05"
