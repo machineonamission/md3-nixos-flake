@@ -155,10 +155,15 @@ let
   # (160k context, MTP, chat template, MOE_EFFORT_BUDGETS); these fields only
   # describe it to OpenCode, using the values from the fork's SERVE.md:
   # output 32000, efforts low..max (max = chained thinking, up to 70% of the context).
+  #   files — { model; mtp ? null; mmproj ? null; }, each a source as in
+  #           llama-swap/helpers.nix fileOf: an absolute path (used in place),
+  #           { url; hash; }, or { hf; file; hash; rev ? "main"; } (both fetched
+  #           into the Nix store). mmproj turns images on (set image = true too).
   tieredModel =
     {
       name,
       quant,
+      files,
       ctx ? 163840,
       maxOutput ? 32000,
       image ? false,
@@ -180,6 +185,7 @@ let
       inherit
         name
         quant
+        files
         ctx
         maxOutput
         image

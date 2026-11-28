@@ -68,16 +68,6 @@ let
       "AVX_VNNI"
     ]
   );
-  #
-  # ruby-llama-serve runs the fork's own serve.sh (its MOE_* tuning, chat template
-  # and expert pins stay in the fork). serve.sh reads its files relative to its own
-  # directory, so share/ruby-llama mirrors that layout with models/ pointing at
-  # rubyModelDir, which holds them under serve.sh's names:
-  #   flash-next.gguf      the tiered Qwen3.8-Flash-Next GGUF
-  #   flash-next-mtp.gguf  the MTP sidecar (layer 48)
-  #   mmproj-F16.gguf      optional; images are off without it
-  # Extra args go to llama-server last (e.g. --port, which overrides serve.sh's).
-  rubyModelDir = "/var/lib/llm-models/flash-next";
   llama-cpp-ruby =
     pkgs-llama.runCommand "llama-cpp-ruby-${llama-cpp-ruby-unwrapped.version}"
       {
@@ -91,21 +81,59 @@ let
           ln -s "$f" "$out/bin/ruby-$(basename "$f")"
         done
         test -e $out/bin/ruby-llama-server
-
-        share=$out/share/ruby-llama
-        mkdir -p $share
-        install -m755 ${llama-cpp-ruby-src}/serve.sh $share/serve.sh
-        patchShebangs $share/serve.sh
-        ln -s ${llama-cpp-ruby-src}/moe-serve $share/moe-serve
-        ln -s ${rubyModelDir} $share/models
-        cat > $out/bin/ruby-llama-serve <<EOF
-        #!${pkgs-llama.runtimeShell}
-        export LLAMA_SERVER="\''${LLAMA_SERVER:-${llama-cpp-ruby-unwrapped}/bin/llama-server}"
-        exec $share/serve.sh "\$@"
-        EOF
-        chmod +x $out/bin/ruby-llama-serve
       '';
-  rubyServe = lib.getExe' llama-cpp-ruby "ruby-llama-serve";
+
+  # A model file source (models.nix `files`) -> a path llama-server can open:
+  #   "/abs/path.gguf"                  used in place (not copied; checked at load)
+  #   { url; hash; }                    fetched into the Nix store
+  #   { hf = "owner/repo"; file; hash; rev ? "main"; }   same, from Hugging Face
+  # Fetched files are fixed-output derivations: put lib.fakeHash, build, and copy
+  # the hash nix prints. A fetch the size of the model needs that much free disk.
+  fileOf =
+    src:
+    if builtins.isString src then
+      src
+    else
+      pkgs-llama.fetchurl {
+        url = src.url or "https://huggingface.co/${src.hf}/resolve/${src.rev or "main"}/${src.file}";
+        inherit (src) hash;
+        name = baseNameOf (src.file or src.url);
+      };
+
+  # serve-<id>: the fork's own serve.sh for one tiered model (its MOE_* tuning,
+  # chat template and expert pins stay in the fork). serve.sh reads its files
+  # relative to its own directory, so share/ mirrors that layout, with models/
+  # linking the spec's `files` under the names serve.sh expects. The -ot pattern
+  # and moe-serve/expert-pins.txt in serve.sh are tied to one tier layout, so a
+  # differently tiered GGUF also needs its own serve.sh. Extra args go to
+  # llama-server last (e.g. --port, overriding serve.sh's 8080).
+  tieredServe =
+    id: s:
+    let
+      links = {
+        "flash-next.gguf" = s.files.model;
+        "flash-next-mtp.gguf" = s.files.mtp or null;
+        "mmproj-F16.gguf" = s.files.mmproj or null;
+      };
+    in
+    pkgs-llama.runCommand "ruby-serve-${id}" { meta.mainProgram = "ruby-serve-${id}"; } ''
+      share=$out/share/ruby-serve
+      mkdir -p $share/models $out/bin
+      install -m755 ${llama-cpp-ruby-src}/serve.sh $share/serve.sh
+      patchShebangs $share/serve.sh
+      ln -s ${llama-cpp-ruby-src}/moe-serve $share/moe-serve
+      ${lib.concatStrings (
+        lib.mapAttrsToList (
+          name: src: lib.optionalString (src != null) "ln -s ${fileOf src} $share/models/${name}\n"
+        ) links
+      )}
+      cat > $out/bin/ruby-serve-${id} <<EOF
+      #!${pkgs-llama.runtimeShell}
+      export LLAMA_SERVER="\''${LLAMA_SERVER:-${llama-cpp-ruby-unwrapped}/bin/llama-server}"
+      exec $share/serve.sh "\$@"
+      EOF
+      chmod +x $out/bin/ruby-serve-${id}
+    '';
   server = lib.getExe' llama-cpp "llama-server";
 
   # Where a SEPARATE draft head runs. igpu keeps 100% of the RTX VRAM for the coder.
@@ -287,13 +315,13 @@ let
     };
     capabilities = capabilities s;
   };
-  # Qwen3.8-Flash-Next on the fork's tiered MoE runtime: every flag and MOE_*
-  # knob comes from the fork's serve.sh (ruby-llama-serve above); only the port
-  # is ours. serve.sh keeps its cap-notice state under $HOME/.cache, so HOME
-  # points into llama-swap's writable cache dir (the service is a DynamicUser).
+  # A model on the fork's tiered MoE runtime: every flag and MOE_* knob comes
+  # from the fork's serve.sh (tieredServe above); only the port is ours. serve.sh
+  # keeps its cap-notice state under $HOME/.cache, so HOME points into
+  # llama-swap's writable cache dir (the service is a DynamicUser).
   tiered = s: {
     inherit (s) name;
-    cmd = "${rubyServe} --port \${PORT}";
+    cmd = "${lib.getExe (tieredServe s.id s)} --port \${PORT}";
     env = [ "HOME=/var/cache/llama-swap" ];
     checkEndpoint = "/health";
     capabilities = capabilities s;
@@ -305,7 +333,7 @@ let
   };
 in
 {
-  inherit llama-cpp llama-cpp-ruby rubyModelDir;
+  inherit llama-cpp llama-cpp-ruby tieredServe;
   entry =
     s:
     {
