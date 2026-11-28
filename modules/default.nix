@@ -12,6 +12,7 @@
     # core OS
     ./system/nix.nix # nix daemon, substituters, nixpkgs.config
     ./system/boot.nix # systemd-boot, kernel, sensor modules
+    ./system/memory.nix # zram swap, reclaim sysctls, desktop memory protection
     ./system/users.nix
     ./system/locale.nix # timezone, locale
     ./system/fonts.nix

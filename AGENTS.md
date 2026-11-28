@@ -18,7 +18,8 @@ modules/                one concern per file; the file name says what's in it.
     saver.nix             (saver) session env off the dGPU, KWin exempt
     headless.nix          (headless) TTY autologin + NVIDIA-for-CUDA without Xorg
   system/               nix.nix (daemon, substituters, nixpkgs.config), boot.nix
-                        (bootloader, kernel, kernel modules), users, locale, fonts,
+                        (bootloader, kernel, kernel modules), memory.nix (zram swap,
+                        reclaim sysctls, user.slice MemoryLow), users, locale, fonts,
                         networking (hostname/NM/firewall/ssh/warp), audio (pipewire)
   hardware/             nvidia.nix, igpu.nix (meldesktop.igpuEnv/intelIcd options,
                         run-on-igpu), firmware, storage (ntfs/fuse), bluetooth,
@@ -113,8 +114,8 @@ models.nix: `env` (MOE_* exported right before serve.sh's `exec`, patched in by 
 tieredServe), `args` (extra llama-server flags, last wins), `cpus` (taskset). Current tuning
 (2026-11-27 sweep, 5070 Ti + 14700K, decode t/s, noise ~8%): P-cores `0-15` + `-t 8`,
 `MOE_DYN_BOOST=2.0` (think boost stays 1.25) = 96-100 vs 82-89 stock. Measured worse/no gain:
-`-t 6` (73), `-t 12`, `--spec-draft-n-max 3` (52), ring cache GB 14/26. Untested: `vm.swappiness=100`
-(fork docs recommend it; box swaps 12-16 GiB onto the model's NVMe). Benchmark by copying
+`-t 6` (73), `-t 12`, `--spec-draft-n-max 3` (52), ring cache GB 14/26. Swap: modules/system/memory.nix
+(zram first, swappiness 150, desktop protected by user.slice MemoryLow; the fork recommends >= 100). Benchmark by copying
 serve.sh, sourcing an overrides file before `exec`, and timing /v1/chat/completions
 (efforts need max_tokens >= cap + 12000, else 400).
 Multi-session: the fork's fast paths need one sequence (`-np 1`), so OpenCode sessions are juggled
