@@ -8,19 +8,26 @@
 # For models whose limit.input is below ctx (presets.nix tieredModel: the server
 # keeps thinking + answer room on top), the same percentages are applied to
 # limit.input instead and emitted as per-model token counts, so DCP still fires
-# well before native compaction.
+# well before native compaction. A spec with `compressAt = { min; max; }` (tokens)
+# uses those as-is instead (tiered: fixed sizes that keep decode fast, however big
+# the window is).
 { lib, catalog }:
 let
   maxPct = 80;
   minPct = 50;
 
   ids = catalog.models // lib.mapAttrs (_: p: p.spec) catalog.profiles;
-  reduced = lib.filterAttrs (_: s: (s.inputLimit or s.ctx) < s.ctx) ids;
+  overridden = lib.filterAttrs (
+    _: s: s.compressAt or null != null || (s.inputLimit or s.ctx) < s.ctx
+  ) ids;
   perModel =
-    pct:
+    which: pct:
     lib.mapAttrs' (
-      id: s: lib.nameValuePair "llama-swap/${id}" (s.inputLimit * pct / 100)
-    ) reduced;
+      id: s:
+      lib.nameValuePair "llama-swap/${id}" (
+        if s.compressAt or null != null then s.compressAt.${which} else s.inputLimit * pct / 100
+      )
+    ) overridden;
 in
 {
   "$schema" =
@@ -28,7 +35,7 @@ in
   compress = {
     maxContextLimit = "${toString maxPct}%";
     minContextLimit = "${toString minPct}%";
-    modelMaxLimits = perModel maxPct;
-    modelMinLimits = perModel minPct;
+    modelMaxLimits = perModel "max" maxPct;
+    modelMinLimits = perModel "min" minPct;
   };
 }

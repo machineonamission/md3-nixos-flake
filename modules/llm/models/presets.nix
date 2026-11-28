@@ -207,6 +207,15 @@ let
       },
       maxPct ? 70, # `max` effort: thinking may use this % of the context left before compaction
       answer ? 12000,
+      # DCP compress nudges (opencode/dcp.nix) in absolute tokens: reminders from
+      # `min`, strong nudges from `max`. Fixed, NOT scaled with ctx: the window is
+      # headroom before native compaction, while sessions are kept around the size
+      # that decodes fast (KV lending: every token in the session costs expert-cache
+      # VRAM; measured ~62 t/s at 80-120k, ~55 at 120-140k). null = DCP's % defaults.
+      compressAt ? {
+        min = 70000;
+        max = 113000;
+      },
     }:
     let
       # Context room, so a long session compacts instead of erroring (2026-11-27: a
@@ -230,7 +239,7 @@ let
       tools = true;
       mtp = "sidecar"; # in serve.sh; only here for the derived "mtp" tag
       reasoningBudget = effortCaps.xhigh or (lib.foldl' lib.max 0 (lib.attrValues effortCaps)); # max has no fixed one
-      inherit inputLimit;
+      inherit inputLimit compressAt;
       # derived server knobs first, the model entry's own env overrides them
       env = {
         MOE_EFFORT_BUDGETS = lib.concatStringsSep "," (

@@ -337,6 +337,8 @@ let
       ++ [
         (lib.getExe (tieredServe s.id s))
         "--port \${PORT}"
+        # the spec's context window (serve.sh hardcodes CTX=163840; the last -c wins)
+        "-c ${toString s.ctx}"
         # multi-session prompt cache, see presets.nix tieredModel cacheRamMiB
         "--cache-ram ${toString s.cacheRamMiB} --cache-idle-slots"
       ]

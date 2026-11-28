@@ -246,6 +246,11 @@
       #   --spec-draft-n-max 3: 52 (much slower), MOE_PREFILL_RING_CACHE_GB 14/22/26: no decode change
       #     (26 risks RAM pressure on 31 GB).
       # To trade quality back: set env.MOE_DYN_BOOST = 1.5 (serve.sh default) and/or raise effort.
+      # The model's native window (GGUF context_length 262144; serve.sh runs 163840).
+      # Costs only what a session uses (KV lending), ~40 MiB fixed for the bigger
+      # indexer tables; DCP still compresses at ~70k/113k (presets.nix compressAt),
+      # so this is headroom before native compaction (~228k), not a target.
+      ctx = 262144;
       cpus = "0-15";
       env.MOE_DYN_BOOST = "2.0"; # string: Nix would render the float as 2.000000
       # Vision: unsloth's Flash-Next mmproj (qwen3vl_merger, projection dim 2560 = the
