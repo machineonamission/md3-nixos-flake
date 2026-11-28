@@ -20,7 +20,9 @@ modules/                one concern per file; the file name says what's in it.
   system/               nix.nix (daemon, substituters, nixpkgs.config), boot.nix
                         (bootloader, kernel, kernel modules), memory.nix (zram swap,
                         reclaim sysctls, user.slice MemoryLow), users, locale, fonts,
-                        networking (hostname/NM/firewall/ssh/warp), audio (pipewire)
+                        networking (hostname/NM/firewall/ssh/warp), audio (pipewire),
+                         hass-agent.nix (go-hass-agent system service: hwmon/GPU temps
+                         + power -> HA via mobile_app; one-time register, see header)
   hardware/             nvidia.nix, igpu.nix (meldesktop.igpuEnv/intelIcd options,
                         run-on-igpu), firmware, storage (ntfs/fuse), bluetooth,
                         printing, openrgb, vr (wivrn), face-unlock (howdy),
@@ -46,9 +48,11 @@ modules/                one concern per file; the file name says what's in it.
     opencode/           opencode packages + generated ~/.config/opencode config.
                         hm-module.nix = the SHARED home-manager module (desktop +
                         tablet build opencode.json from it; m2.opencode.host picks
-                        the flavor): settings.nix, providers.nix (models from
-                        models/), permissions.nix, dcp.nix; default.nix (desktop
-                        NixOS wiring), serve.nix (headless: `opencode serve` at boot)
+                        the flavor, m2.opencode.package the CLI): settings.nix,
+                        providers.nix (models from models/), permissions.nix,
+                        dcp.nix; default.nix (desktop NixOS wiring + the packages
+                        from flake input `opencode`, with workarounds), serve.nix
+                        (`opencode serve --service` user unit, every mode)
 home/                   home-manager (melody.nix, spotify.nix)
 docs/                   reference: llama-server --help, llama-swap example config,
                         repo-structure.md (annotated map of every file),
@@ -164,7 +168,17 @@ module that is the SHARED single source of truth: the desktop builds it via
 this NixOS config (flavor `desktop`), and the Arch Surface tablet
 (`~/Projects/tablet-home`, its own flake) builds the same files via standalone
 `home-manager switch` (flavor `tablet` — drops desktop-only references/plugins).
-Never copy opencode.json anywhere; each machine builds it. Read-only store
+Never copy opencode.json anywhere; each machine builds it.
+Packages: the desktop's opencode CLI + desktop app come from the flake input `opencode`
+(anomalyco/opencode at a release tag; nixpkgs lags), NOT nixpkgs. default.nix carries three
+upstream workarounds: (1) node_modules FOD hash override (upstream's hashes.json is wrong,
+#59882; on a tag bump paste the "got:" hash), (2) generate share/config.json +
+passthru.jsonschema.config (home-manager's schema validation needs it), (3) stage the CLI in
+packages/cli/dist for the desktop build (build.ts ignores $OPENCODE_CLI_DIST). Bump: change
+the tag in flake.nix, `nix flake update opencode`, build, drop workarounds upstream fixed.
+The tablet still uses nixpkgs' opencode (default of m2.opencode.package), so the two machines
+can run different versions: settings.nix gets `version` and branches keys whose schema
+changed (e.g. experimental.background_compaction, gone in 2.4 where it's on by default). Read-only store
 symlinks; opencode.json is validated against opencode's own v2 schema at build
 time. Do NOT leave an opencode.jsonc there: OpenCode loads it ON TOP of
 opencode.json (`opencode debug config --standalone` lists both documents), so

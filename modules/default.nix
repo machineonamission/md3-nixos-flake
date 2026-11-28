@@ -18,6 +18,7 @@
     ./system/fonts.nix
     ./system/networking.nix # hostname, networkmanager, firewall, ssh, warp
     ./system/audio.nix # pipewire
+    ./system/hass-agent.nix # go-hass-agent: hwmon/GPU temps + power -> Home Assistant
 
     # hardware + peripherals
     ./hardware/nvidia.nix # dGPU driver, container toolkit
