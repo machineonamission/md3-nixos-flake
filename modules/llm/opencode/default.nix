@@ -3,6 +3,7 @@
 #   settings.nix    — the config as a Nix value (agents, plugins, mcp, ...)
 #   providers.nix   — providers; llama-swap models generated from modules/llm/models
 #   permissions.nix — global rules + the M2 agents
+#   dcp.nix         — the generated ~/.config/opencode/dcp.jsonc (DCP plugin)
 #
 # Same idea as services.llama-swap.settings: home-manager's programs.opencode
 # serializes `settings` to opencode.json (a read-only symlink into the store)
@@ -50,5 +51,11 @@ in
         secrets
         ;
     };
+  };
+
+  # DCP plugin config (dcp.nix). force: replaces the old hand-written dcp.jsonc.
+  home-manager.users.melody.xdg.configFile."opencode/dcp.jsonc" = {
+    force = true;
+    text = builtins.toJSON (import ./dcp.nix { inherit lib catalog; });
   };
 }
