@@ -84,7 +84,7 @@
     hplip
 
     # JetBrains IDEs
-    jetbrains.clion
+    # jetbrains.clion
     jetbrains.goland
     jetbrains.idea
     jetbrains.phpstorm
