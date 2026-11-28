@@ -176,6 +176,13 @@ let
         "max"
       ],
       tags ? [ ],
+      # Tuning on top of the fork's serve.sh (each measured on this box, see the model entry):
+      #   env  — MOE_* overrides, exported right before serve.sh's exec
+      #   args — extra llama-server flags (last one wins over serve.sh's)
+      #   cpus — taskset CPU list for the whole server (null = unpinned)
+      env ? { },
+      args ? [ ],
+      cpus ? null,
     }:
     {
       kind = "tiered";
@@ -192,6 +199,9 @@ let
         effort
         efforts
         tags
+        env
+        args
+        cpus
         ;
     };
 
