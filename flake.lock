@@ -39,11 +39,11 @@
     "llama-cpp-ruby": {
       "flake": false,
       "locked": {
-        "lastModified": 1795824617,
-        "narHash": "sha256-5GAlR9ESDPvpbDZlx/fqpfXdLwuS7D7h0iqxgp4HxeE=",
+        "lastModified": 1795851823,
+        "narHash": "sha256-ztMegmn1Bw6fd+JZ/B/3rAlJ7wcNABj1I8ANuEORGik=",
         "ref": "nix-compat",
-        "rev": "1a07413c216bd24519733c1ec3ba83ef835672ad",
-        "revCount": 12172,
+        "rev": "e8c3e9380d9016b949bcc19615ddffeadf59f80d",
+        "revCount": 12175,
         "type": "git",
         "url": "file:///home/melody/Projects/ruby-llamacppfork"
       },
