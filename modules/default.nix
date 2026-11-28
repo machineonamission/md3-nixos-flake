@@ -39,6 +39,7 @@
     ./programs/cli-tools.nix
     ./programs/git.nix # system git identity
     ./programs/apps.nix # firefox, steam, kdeconnect, onedrive
+    ./programs/claude-desktop # (desktop) official Claude Desktop .deb, repackaged
 
     # running non-Nix software
     ./compat/portable.nix # nix-ld library set + run-portable wrapper
