@@ -1,5 +1,10 @@
 # opencode — packages + the generated ~/.config/opencode/opencode.json.
 #
+# The whole generated config lives in ./hm-module.nix, shared verbatim with
+# the tablet (Arch, standalone home-manager) — see that file's header. This
+# file is only the desktop's NixOS side: the desktop app package + the
+# headless `opencode serve` service.
+#
 #   settings.nix    — the config as a Nix value (agents, plugins, mcp, ...)
 #   providers.nix   — providers; llama-swap models generated from modules/llm/models
 #   permissions.nix — global rules + the M2 agents
@@ -21,41 +26,13 @@
 #
 # Check what OpenCode actually loaded (the background service caches config,
 # so use a private server):  opencode debug config --standalone
-{
-  lib,
-  pkgs,
-  config,
-  ...
-}:
-let
-  home = config.users.users.melody.home;
-  secrets = "${home}/.config/opencode/secrets";
-  catalog = import ../models { inherit lib; };
-in
+{ pkgs, ... }:
 {
   imports = [ ./serve.nix ]; # `opencode serve` at boot (headless)
 
-  # The CLI comes from programs.opencode below (into melody's profile);
-  # serve.nix (headless) runs `opencode serve` from pkgs.opencode directly.
+  # The CLI comes from hm-module.nix (programs.opencode, into melody's
+  # profile); serve.nix (headless) runs `opencode serve` from pkgs.opencode.
   environment.systemPackages = [ pkgs.opencode-desktop ];
 
-  home-manager.users.melody.programs.opencode = {
-    enable = true;
-    package = pkgs.opencode;
-    validateFiles.config = true;
-    settings = import ./settings.nix {
-      inherit
-        lib
-        catalog
-        home
-        secrets
-        ;
-    };
-  };
-
-  # DCP plugin config (dcp.nix). force: replaces the old hand-written dcp.jsonc.
-  home-manager.users.melody.xdg.configFile."opencode/dcp.jsonc" = {
-    force = true;
-    text = builtins.toJSON (import ./dcp.nix { inherit lib catalog; });
-  };
+  home-manager.users.melody.imports = [ ./hm-module.nix ];
 }
