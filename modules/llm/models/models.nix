@@ -248,9 +248,18 @@
       # To trade quality back: set env.MOE_DYN_BOOST = 1.5 (serve.sh default) and/or raise effort.
       cpus = "0-15";
       env.MOE_DYN_BOOST = "2.0"; # string: Nix would render the float as 2.000000
+      # Vision: unsloth's Flash-Next mmproj (qwen3vl_merger, projection dim 2560 = the
+      # model's embedding; the 27B mmproj files are 5120 and do not fit). serve.sh turns
+      # images on (2048 tokens each) when models/mmproj-F16.gguf exists.
+      image = true;
       files = {
         model = "/var/lib/llm-models/flash-next/flash-next.gguf"; # rev4_rbf_m48_a8_a1u7x64.gguf
         mtp = "/var/lib/llm-models/flash-next/flash-next-mtp.gguf"; # mtp-i2trn-t0.gguf
+        mmproj = {
+          hf = "unsloth/Qwen3.8-Flash-Next-GGUF";
+          file = "mmproj-F16.gguf";
+          hash = "sha256-H3t/C5hM8GXGBDYMKcgJg2LtYbKQ2w/xLG82C7GoqYA=";
+        };
       };
     };
 
