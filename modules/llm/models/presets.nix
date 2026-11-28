@@ -10,7 +10,10 @@
 #   flashNext  — `model` preset for the Qwen3.8-Flash-Coder / Flash-Next MoE slices
 #   tieredModel — a model served by the ruriww fork's serve.sh (ruby-llama-serve)
 #   titleModel — a tiny title-generation model on the Intel iGPU (Vulkan0)
-{ lib }:
+{
+  lib,
+  compactionBufferPct, # OpenCode's compaction.buffer in %, see default.nix
+}:
 let
   # Arguments (only name + hf are required):
   #   hfFile        — exact GGUF in the repo (-hff), so sidecars (dflash, mmproj)
@@ -151,10 +154,10 @@ let
 
   # Qwen3.8-Flash-Next on the ruriww fork's tiered MoE runtime (~94 GiB GGUF:
   # dense weights + an expert cache in VRAM, the other experts mmapped from the
-  # NVMe). llama-swap runs the fork's serve.sh, which fixes everything server-side
-  # (160k context, MTP, chat template, MOE_EFFORT_BUDGETS); these fields only
-  # describe it to OpenCode, using the values from the fork's SERVE.md:
-  # output 32000, efforts low..max (max = chained thinking, up to 70% of the context).
+  # NVMe). llama-swap runs the fork's serve.sh (160k context, MTP, chat template,
+  # every MOE_* knob); the fields below override what has to agree with OpenCode
+  # (effort caps, context room) and describe it to OpenCode, using the fork's
+  # SERVE.md values: output 32000, efforts low..max (max = chained thinking).
   #   files — { model; mtp ? null; mmproj ? null; }, each a source as in
   #           llama-swap/helpers.nix fileOf: an absolute path (used in place),
   #           { url; hash; }, or { hf; file; hash; rev ? "main"; } (both fetched
@@ -193,12 +196,51 @@ let
       # -cram 2048 fits about one. Parked states are anonymous memory, so under
       # pressure they go to swap instead of evicting the expert page cache wholesale.
       cacheRamMiB ? 8192,
+      # Thinking cap per effort (tokens) and the room the server keeps for the answer
+      # on top; nix owns these and passes them to serve.sh as MOE_EFFORT_BUDGETS /
+      # MOE_THINK_ANSWER (serve.sh's own values: the ones below, max 70%).
+      effortCaps ? {
+        low = 1000;
+        medium = 4000;
+        high = 12000;
+        xhigh = 20000;
+      },
+      maxPct ? 70, # `max` effort: thinking may use this % of the context left before compaction
+      answer ? 12000,
     }:
+    let
+      # Context room, so a long session compacts instead of erroring (2026-11-27: a
+      # 133k-token session at xhigh got the fork's "request exceeds the context
+      # window", 133398 + 20000 cap + 12000 answer > 163840, and OpenCode compacted
+      # out of the blue). OpenCode has one limit per model, not per effort, so:
+      #   - the server FITS the cap when the room runs short (MOE_THINK_ROOM_ERROR=0:
+      #     cap -> max(cap / 2, room - answer)) instead of returning that error;
+      #   - OpenCode's input limit leaves exactly the worst fitted case free:
+      #     ctx - (largest cap / 2 + answer) = 163840 - 22000 = 141840, then compacts
+      #     compactionBufferPct (5 %) below that (~134.7k), so every effort, xhigh
+      #     included, still gets at least half its cap plus a full answer;
+      #   - `max` sizes its chained thinking to the context left before THAT point
+      #     (MOE_THINK_CHAIN_RESERVE = ctx - the compaction point; the fork assumed 33000).
+      # DCP's nudges (opencode/dcp.nix) are relative to the same inputLimit.
+      inputLimit = ctx - (lib.foldl' lib.max 0 (lib.attrValues effortCaps) / 2 + answer);
+      compactAt = inputLimit - inputLimit * compactionBufferPct / 100;
+    in
     {
       kind = "tiered";
       tools = true;
       mtp = "sidecar"; # in serve.sh; only here for the derived "mtp" tag
-      reasoningBudget = 20000; # xhigh's cap (max has no fixed one)
+      reasoningBudget = effortCaps.xhigh or (lib.foldl' lib.max 0 (lib.attrValues effortCaps)); # max has no fixed one
+      inherit inputLimit;
+      # derived server knobs first, the model entry's own env overrides them
+      env = {
+        MOE_EFFORT_BUDGETS = lib.concatStringsSep "," (
+          lib.mapAttrsToList (e: c: "${e}:${toString c}") effortCaps ++ [ "max:${toString maxPct}%" ]
+        );
+        MOE_THINK_ANSWER = answer;
+        MOE_THINK_ROOM_ERROR = 0;
+        MOE_THINK_CHAIN_RESERVE = ctx - compactAt;
+      }
+      // env;
       inherit
         name
         quant
@@ -209,7 +251,6 @@ let
         effort
         efforts
         tags
-        env
         args
         cpus
         cacheRamMiB

@@ -52,7 +52,9 @@ let
       type = "chat";
       limit = {
         context = s.ctx;
-        input = s.ctx;
+        # what a prompt may grow to before auto-compaction (minus compaction.buffer);
+        # below ctx when the server needs room on top (presets.nix tieredModel)
+        input = s.inputLimit or s.ctx;
         output = s.maxOutput;
       };
       capabilities = {

@@ -14,9 +14,15 @@
 #              them (smallest ctx, image only if every target has it, ...), so
 #              OpenCode can list a profile like a model
 #   port     — llama-swap's port
+#   compactionBufferPct — OpenCode's compaction.buffer (%), see presets.nix
 { lib }:
 let
-  presets = import ./presets.nix { inherit lib; };
+  # OpenCode's compaction.buffer (opencode/settings.nix), in % of a model's input
+  # window: auto-compaction fires at limit.input - buffer. Here so the tiered model
+  # can tell its server where that point is (presets.nix tieredModel).
+  compactionBufferPct = 5;
+
+  presets = import ./presets.nix { inherit lib compactionBufferPct; };
 
   # Tags anyone could work out from the spec, so models.nix never repeats them.
   derivedTags =
@@ -113,5 +119,6 @@ assert lib.assertMsg (
 ) "llm: ids used more than once (across groups/profiles): ${toString dupes}";
 {
   inherit groups models profiles;
+  inherit compactionBufferPct;
   port = 9930;
 }

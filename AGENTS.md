@@ -121,6 +121,9 @@ serve.sh, sourcing an overrides file before `exec`, and timing /v1/chat/completi
 Multi-session: the fork's fast paths need one sequence (`-np 1`), so OpenCode sessions are juggled
 through the host-RAM prompt cache instead (`cacheRamMiB`, default 8192 = ~5 parked 90k-token
 sessions; serve.sh's own 2048 fits ~1). Vision: `files.mmproj` = unsloth's Flash-Next mmproj-F16.
+Effort caps live in nix (`effortCaps`, `answer`, `maxPct` -> MOE_EFFORT_BUDGETS / MOE_THINK_ANSWER);
+MOE_THINK_ROOM_ERROR=0 fits the cap (>= half) near the end of the context instead of the fork's
+overflow error, and MOE_THINK_CHAIN_RESERVE = ctx - OpenCode's compaction point.
 
 ### Home Assistant voice (`voice` selector)
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded
@@ -145,15 +148,23 @@ defaults were raised to 768/1024 MiB after Tiel OOM'd on the first request with 
 
 ## OpenCode config
 
-~/.config/opencode/opencode.json is generated (read-only store symlink) and
-validated against opencode's own v2 schema at build time. Do NOT leave an
-opencode.jsonc there: OpenCode prefers it and the generated file silently loses.
+~/.config/opencode/opencode.json and dcp.jsonc (DCP plugin, opencode/dcp.nix) are
+generated (read-only store symlinks); opencode.json is validated against opencode's own
+v2 schema at build time. Do NOT leave an opencode.jsonc there: OpenCode loads it ON TOP
+of opencode.json (`opencode debug config --standalone` lists both documents), so its
+keys silently win (2026-11-27: a leftover hand config overrode compaction/permissions).
 This repo is PUBLIC: secrets go in ~/.config/opencode/secrets/<name> (gitignored,
 outside the store) and are referenced as `{file:...}` (settings.nix). Inspect the
 loaded config with `opencode debug config --standalone` (without --standalone it
 asks the already-running background server, which has the old config cached).
 ~/.config/opencode is also its own private git repo (machineonamission/opencode)
-for the files that are still hand-edited (AGENTS.md, dcp.jsonc, skills, memory).
+for the files that are still hand-edited (AGENTS.md, skills, memory).
+
+Context limits: native compaction (`compaction.buffer`, % of limit.input, constant in
+models/default.nix) is the failsafe; DCP's compress nudges (80% / 50%) should fire first.
+A model whose server needs room on top of the prompt sets `inputLimit` below `ctx`
+(tiered: ctx - (largest effort cap / 2 + answer) = 141840); OpenCode compacts below it,
+and dcp.nix emits per-model token thresholds from it (DCP's own "%" is of limit.context).
 
 ## Verifying refactors
 
