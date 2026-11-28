@@ -27,6 +27,7 @@ let
   llama = import ./helpers.nix {
     inherit lib pkgs-llama;
     llama-cpp-src = inputs.llama-cpp;
+    llama-cpp-ruby-src = inputs.llama-cpp-ruby;
     inherit (config.meldesktop.llm) fitTarget; # per-mode --fit headroom
   };
   cfg = config.services.llama-swap;
@@ -53,7 +54,7 @@ let
   vramMiB = 16000;
   routing =
     s:
-    if s.kind == "coder" then
+    if s.kind == "coder" || s.kind == "tiered" then
       {
         capacities.vram = vramMiB;
         evict_cost = 100; # never worth unloading for voice (the selector skips it anyway)
@@ -67,11 +68,15 @@ let
       { };
 in
 {
-  # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
+  # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...),
+  # plus the ruriww fork as ruby-llama-server, ruby-llama-cli, ... and each
+  # tiered model's launcher as ruby-serve-<id> (helpers.nix).
   environment.systemPackages = [
     llama.llama-cpp
+    llama.llama-cpp-ruby
     cfg.package
-  ];
+  ]
+  ++ lib.mapAttrsToList llama.tieredServe (lib.filterAttrs (_: s: s.kind == "tiered") catalog.models);
 
   services.llama-swap = {
     enable = true;
@@ -80,8 +85,8 @@ in
     listenAddress = "0.0.0.0"; # reachable from other devices on the LAN
     settings = {
       models = lib.mapAttrs (
-        _: s:
-        llama.entry s
+        id: s:
+        llama.entry (s // { inherit id; })
         // routing s
         // lib.optionalAttrs (config.meldesktop.llm.ttl != null) { inherit (config.meldesktop.llm) ttl; }
       ) catalog.models;
@@ -115,4 +120,9 @@ in
   # Vulkan loader straight at Intel's ICD (exposes the iGPU as Vulkan0; the RTX
   # is reached through CUDA).
   systemd.services.llama-swap.environment.VK_ICD_FILENAMES = config.meldesktop.intelIcd;
+
+  # Drop-in place for local model files (models.nix `files` paths). Owned by
+  # melody so files can be moved in without root; the DynamicUser service can't
+  # read /home (ProtectHome), but /var/lib is readable.
+  systemd.tmpfiles.rules = [ "d /var/lib/llm-models 0755 melody users -" ];
 }

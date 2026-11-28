@@ -13,6 +13,7 @@
   model,
   valV3,
   flashNext,
+  tieredModel,
   titleModel,
   voiceModel,
 }:
@@ -225,6 +226,21 @@
       name = "Qwen3.8 Flash Next (L448, 16GB)";
       hf = "zephel01/Qwen3.8-Flash-Next-12G32G-GGUF";
       quant = "L448 (zephel01, 16GB)";
+    };
+
+    # The ruriww/llama.cpp fork's tiered build of Flash Next: 512 experts, ~94 GiB,
+    # streamed from the NVMe around a VRAM expert cache. `files` takes paths
+    # (used in place) or { url; hash; } / { hf; file; hash; } (fetched into the
+    # store), see presets.nix tieredModel. Local files live in /var/lib/llm-models
+    # because the llama-swap service can't read /home.
+    "Qwen3.8-Flash-Next-Tiered" = tieredModel {
+      name = "RUBY TIERED Qwen3.8 Flash Next FORK";
+      quant = "rev4_rbf_m48_a8_a1u7x64 (trellis tiers)";
+      tags = [ "qwen3.8-flash" ];
+      files = {
+        model = "/var/lib/llm-models/flash-next/flash-next.gguf"; # rev4_rbf_m48_a8_a1u7x64.gguf
+        mtp = "/var/lib/llm-models/flash-next/flash-next-mtp.gguf"; # mtp-i2trn-t0.gguf
+      };
     };
 
     "Thomson-1.0-Small" = model {

@@ -36,6 +36,23 @@
         "type": "github"
       }
     },
+    "llama-cpp-ruby": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1795824617,
+        "narHash": "sha256-5GAlR9ESDPvpbDZlx/fqpfXdLwuS7D7h0iqxgp4HxeE=",
+        "ref": "nix-compat",
+        "rev": "1a07413c216bd24519733c1ec3ba83ef835672ad",
+        "revCount": 12172,
+        "type": "git",
+        "url": "file:///home/melody/Projects/ruby-llamacppfork"
+      },
+      "original": {
+        "ref": "nix-compat",
+        "type": "git",
+        "url": "file:///home/melody/Projects/ruby-llamacppfork"
+      }
+    },
     "nixos-flatpak": {
       "locked": {
         "lastModified": 1790428548,
@@ -72,6 +89,7 @@
       "inputs": {
         "home-manager": "home-manager",
         "llama-cpp": "llama-cpp",
+        "llama-cpp-ruby": "llama-cpp-ruby",
         "nixos-flatpak": "nixos-flatpak",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
