@@ -106,6 +106,17 @@ union of its targets' efforts, but its DEFAULT effort is always one the first (p
 target accepts. `flashNext` (presets.nix) is the preset for the Qwen3.8 Flash MoE slices
 (thinking off by default, 4096-token budget).
 
+### Tiered model (ruriww fork, `Qwen3.8-Flash-Next-Tiered`)
+Runs the fork's own `serve.sh` (every flag/MOE_* knob lives there). Tuning on top is per-model in
+models.nix: `env` (MOE_* exported right before serve.sh's `exec`, patched in by helpers.nix
+tieredServe), `args` (extra llama-server flags, last wins), `cpus` (taskset). Current tuning
+(2026-11-27 sweep, 5070 Ti + 14700K, decode t/s, noise ~8%): P-cores `0-15` + `-t 8`,
+`MOE_DYN_BOOST=2.0` (think boost stays 1.25) = 96-100 vs 82-89 stock. Measured worse/no gain:
+`-t 6` (73), `-t 12`, `--spec-draft-n-max 3` (52), ring cache GB 14/26. Untested: `vm.swappiness=100`
+(fork docs recommend it; box swaps 12-16 GiB onto the model's NVMe). Benchmark by copying
+serve.sh, sourcing an overrides file before `exec`, and timing /v1/chat/completions
+(efforts need max_tokens >= cap + 12000, else 400).
+
 ### Home Assistant voice (`voice` selector)
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded
 coder counts as busy; llama-swap can't tell busy from idle). This is pure llama-swap config:

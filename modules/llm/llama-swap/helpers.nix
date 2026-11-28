@@ -121,6 +121,14 @@ let
       mkdir -p $share/models $out/bin
       install -m755 ${llama-cpp-ruby-src}/serve.sh $share/serve.sh
       patchShebangs $share/serve.sh
+      ${lib.optionalString (s.env != { }) ''
+        # serve.sh hardcodes its MOE_* exports, so overrides go in right before
+        # its final exec (the later export wins). Plain flags need no patch:
+        # serve.sh appends "$@" to llama-server's args and the last one wins.
+        substituteInPlace $share/serve.sh --replace-fail 'exec "$SRV"' ${lib.escapeShellArg ''
+          ${lib.concatStrings (lib.mapAttrsToList (k: v: "export ${k}=${lib.escapeShellArg (toString v)}
+") s.env)}exec "$SRV"''}
+      ''}
       ln -s ${llama-cpp-ruby-src}/moe-serve $share/moe-serve
       ${lib.concatStrings (
         lib.mapAttrsToList (
@@ -321,7 +329,17 @@ let
   # llama-swap's writable cache dir (the service is a DynamicUser).
   tiered = s: {
     inherit (s) name;
-    cmd = "${lib.getExe (tieredServe s.id s)} --port \${PORT}";
+    cmd = toString (
+      lib.optionals (s.cpus != null) [
+        (lib.getExe' pkgs-llama.util-linux "taskset")
+        "-c ${s.cpus}"
+      ]
+      ++ [
+        (lib.getExe (tieredServe s.id s))
+        "--port \${PORT}"
+      ]
+      ++ s.args
+    );
     env = [ "HOME=/var/cache/llama-swap" ];
     checkEndpoint = "/health";
     capabilities = capabilities s;

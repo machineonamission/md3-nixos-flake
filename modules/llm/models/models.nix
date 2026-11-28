@@ -237,6 +237,17 @@
       name = "RUBY TIERED Qwen3.8 Flash Next FORK";
       quant = "rev4_rbf_m48_a8_a1u7x64 (trellis tiers)";
       tags = [ "qwen3.8-flash" ];
+      # Tuned 2026-11-27 on the 5070 Ti / i7-14700K box (saver mode, decode t/s
+      # over 6 prompts; run-to-run noise ~8%; stock serve.sh = 82-89):
+      #   cpus 0-15 (P-cores, taskset), -t 8:  ~90   (-t 6: 73, -t 12: 80, within noise of stock)
+      #   + MOE_DYN_BOOST 2.0 (think stays 1.25): 96-100, i.e. ~+16%; the fork's KL data
+      #     puts that at ~+16% mean KLD on code. Boost on think 1.5 bought only
+      #     ~+3% more speed for ~+10% KL, so it is left at serve.sh's 1.25.
+      #   --spec-draft-n-max 3: 52 (much slower), MOE_PREFILL_RING_CACHE_GB 14/22/26: no decode change
+      #     (26 risks RAM pressure on 31 GB).
+      # To trade quality back: set env.MOE_DYN_BOOST = 1.5 (serve.sh default) and/or raise effort.
+      cpus = "0-15";
+      env.MOE_DYN_BOOST = "2.0"; # string: Nix would render the float as 2.000000
       files = {
         model = "/var/lib/llm-models/flash-next/flash-next.gguf"; # rev4_rbf_m48_a8_a1u7x64.gguf
         mtp = "/var/lib/llm-models/flash-next/flash-next-mtp.gguf"; # mtp-i2trn-t0.gguf
