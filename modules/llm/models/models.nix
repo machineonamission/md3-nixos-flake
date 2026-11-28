@@ -246,12 +246,13 @@
       #   --spec-draft-n-max 3: 52 (much slower), MOE_PREFILL_RING_CACHE_GB 14/22/26: no decode change
       #     (26 risks RAM pressure on 31 GB).
       # To trade quality back: set env.MOE_DYN_BOOST = 1.5 (serve.sh default) and/or raise effort.
-      # The model's native window (GGUF context_length 262144; serve.sh runs 163840).
-      # Costs only what a session uses (KV lending), ~40 MiB fixed for the bigger
-      # indexer tables; DCP still compresses at ~70k/113k (presets.nix compressAt),
-      # so this is headroom before native compaction (~228k), not a target.
-      ctx = 262144;
+      # ctx stays at serve.sh's 163840. 262144 (the GGUF's native length) was tried
+      # 2026-11-27 and backed out with the OOM fixes (system/memory.nix): the fork's
+      # pinned host buffers (indexer keys etc.) scale with -c, and pinned memory is
+      # what compaction can't move. Retry once memory.nix has proven stable.
       cpus = "0-15";
+      # parked OpenCode sessions in host RAM: 6 GiB (~3-4 sessions of 90k), was 8
+      cacheRamMiB = 6144;
       env.MOE_DYN_BOOST = "2.0"; # string: Nix would render the float as 2.000000
       # Vision: unsloth's Flash-Next mmproj (qwen3vl_merger, projection dim 2560 = the
       # model's embedding; the 27B mmproj files are 5120 and do not fit). serve.sh turns

@@ -115,7 +115,7 @@ tieredServe), `args` (extra llama-server flags, last wins), `cpus` (taskset). Cu
 (2026-11-27 sweep, 5070 Ti + 14700K, decode t/s, noise ~8%): P-cores `0-15` + `-t 8`,
 `MOE_DYN_BOOST=2.0` (think boost stays 1.25) = 96-100 vs 82-89 stock. Measured worse/no gain:
 `-t 6` (73), `-t 12`, `--spec-draft-n-max 3` (52), ring cache GB 14/26. Swap: modules/system/memory.nix
-(zram first, swappiness 150, desktop protected by user.slice MemoryLow; the fork recommends >= 100). Benchmark by copying
+(zram first, swappiness 100, desktop protected by user.slice MemoryLow). Benchmark by copying
 serve.sh, sourcing an overrides file before `exec`, and timing /v1/chat/completions
 (efforts need max_tokens >= cap + 12000, else 400).
 Multi-session: the fork's fast paths need one sequence (`-np 1`), so OpenCode sessions are juggled
@@ -124,10 +124,14 @@ sessions; serve.sh's own 2048 fits ~1). Vision: `files.mmproj` = unsloth's Flash
 Effort caps live in nix (`effortCaps`, `answer`, `maxPct` -> MOE_EFFORT_BUDGETS / MOE_THINK_ANSWER);
 MOE_THINK_ROOM_ERROR=0 fits the cap (>= half) near the end of the context instead of the fork's
 overflow error, and MOE_THINK_CHAIN_RESERVE = ctx - OpenCode's compaction point.
-Context: `ctx = 262144` (the GGUF's native length; serve.sh hardcodes 163840, the launcher
-appends `-c` from the spec). KV lending makes the window pay-as-you-go: only tokens in the
+Context: `ctx` 163840 (the launcher appends `-c` from the spec; the GGUF supports 262144,
+tried and backed out 2026-11-28 with the OOM fixes in system/memory.nix: pinned host
+buffers scale with -c). KV lending makes the window pay-as-you-go: only tokens in the
 session cost expert-cache VRAM (~14 KiB/token q8_0). Live decode 2026-11-27: ~62 t/s at
-80-120k, ~55 at 120-140k; >160k unmeasured (estimated ~40-45 t/s at 250k).
+80-120k, ~55 at 120-140k. `cacheRamMiB` 6144 in models.nix.
+Memory: 2026-11-28 global OOMs with swap free were order-3 allocations failing on RAM
+fragmented by the fork's pinned (unmovable) memory + zram; memory.nix keeps 1 GiB free
+(min_free_kbytes), compacts proactively, no watermark boost, zram 25 %.
 
 ### Home Assistant voice (`voice` selector)
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded
@@ -167,7 +171,7 @@ for the files that are still hand-edited (AGENTS.md, skills, memory).
 Context limits: native compaction (`compaction.buffer`, % of limit.input, constant in
 models/default.nix) is the failsafe; DCP's compress nudges (80% / 50%) should fire first.
 A model whose server needs room on top of the prompt sets `inputLimit` below `ctx`
-(tiered: ctx - (largest effort cap / 2 + answer) = 240144 at ctx 262144); OpenCode compacts
+(tiered: ctx - (largest effort cap / 2 + answer) = 141840); OpenCode compacts
 below it, and dcp.nix emits per-model token thresholds from it (DCP's own "%" is of
 limit.context), or a spec's absolute `compressAt` (tiered: 70000 / 113000, fixed so
 sessions stay at the size that decodes fast while the window is just headroom).
