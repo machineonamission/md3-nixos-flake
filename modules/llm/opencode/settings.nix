@@ -22,7 +22,8 @@ let
   isDesktop = flavor == "desktop";
 in
 {
-  model = "llama-swap/coder#medium";
+  # Tiered Flash-Next fork at xhigh (20k thinking cap); #high = the 12k-cap variant.
+  model = "llama-swap/Qwen3.8-Flash-Next-Tiered#xhigh";
   default_agent = "M2.2 🛠️ Builder";
   username = "Melody";
   snapshots = true;
