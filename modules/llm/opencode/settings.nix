@@ -52,9 +52,7 @@ in
     "@nandoblanco/opencode-local-memory"
     "@nandoblanco/opencode-local-backup"
     "opencode-models-discovery@latest" # only the llama-server provider uses it now
-  ]
-  ++ lib.optionals isDesktop [
-    "${home}/Projects/opencode-resume-plugin" # local plugin checkout (desktop-only for now)
+    "https://github.com/machineonamission/opencode-resume-plugin" # shared now (was desktop-local path); private repo — needs a gh/git credential on each machine
   ];
 
   # Project files are looked up per project; the last one is this config dir's.
