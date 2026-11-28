@@ -30,7 +30,7 @@
     # private and nix has no token, so this tracks the local checkout's committed
     # HEAD. Bump: `nix flake update llama-cpp-ruby` (full CUDA rebuild).
     llama-cpp-ruby = {
-      url = "git+file:///home/melody/Projects/ruby-llamacppfork?ref=nix-compat";
+      url = "github:machineonamission/llama.cpp/nix-compat";
       flake = false;
     };
   };
