@@ -9,12 +9,17 @@
 # Everything is shared byte-for-byte between machines EXCEPT the references
 # and local plugins listed under `isDesktop` below — the tablet can't see
 # /etc/nixos or the LLama-GUI checkout, and has no desktop-only local plugin.
+#
+# `version`: the opencode package's version (machines can run different ones:
+# the desktop builds upstream's flake, the tablet nixpkgs'). Keys whose schema
+# changed between versions branch on it, so each machine's config validates.
 {
   lib,
   catalog,
   home,
   secrets,
   flavor ? "desktop",
+  version,
 }:
 let
   permissions = import ./permissions.nix { };
@@ -73,6 +78,10 @@ in
 
   experimental = {
     portable_shell_scanner = true;
+  }
+  # >= 2.4 dropped this flag; background compaction is `compaction.background`
+  # there and defaults to on (core/src/session/compaction.ts).
+  // lib.optionalAttrs (lib.versionOlder version "2.4") {
     background_compaction = true;
   };
 

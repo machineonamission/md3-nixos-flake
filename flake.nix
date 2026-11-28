@@ -14,6 +14,12 @@
     # (modules/llm/llama-swap/helpers.nix). Bump: `nix flake update llama-cpp`
     # (full CUDA rebuild). Not a flake input on purpose: its flake pulls flake-parts
     # and its own nixpkgs, and we only need the source tree.
+    # opencode CLI + desktop app from upstream's own flake (nixpkgs lags several
+    # releases). Pinned to a release tag; bump the tag, then `nix flake update opencode`.
+    # No nixpkgs follows on purpose: upstream's node_modules FOD hash is only valid
+    # for the Bun in its own pinned nixpkgs (anomalyco/opencode#59882).
+    # Wired up in modules/llm/opencode/default.nix.
+    opencode.url = "github:anomalyco/opencode/v2.4.2";
     llama-cpp = {
       url = "github:ggml-org/llama.cpp";
       flake = false;

@@ -3,15 +3,29 @@
 #   ssh melody@MelDesktop3
 #   mode headless   (= sudo /run/current-system/specialisation/headless/bin/switch-to-configuration test)
 #   ssh -L 4096:localhost:4096 melody@MelDesktop3   # then open http://localhost:4096
-# Also starts in this mode: llama-swap (llm/llama-swap), `opencode serve`
-# (llm/opencode/serve.nix); openrgb (hardware/openrgb.nix) runs in every mode.
+# Also starts in this mode: llama-swap (llm/llama-swap), `claude remote-control`
+# in ~/Projects (below). `opencode serve` (llm/opencode/serve.nix) and openrgb
+# (hardware/openrgb.nix) run in every mode.
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 lib.mkIf (config.meldesktop.mode == "headless") {
   services.getty.autologinUser = "melody";
+
+  # Starts with the autologin session. ~/Projects must stay trusted in claude (no TTY to ask on).
+  home-manager.users.melody.systemd.user.services.claude-remote-control = {
+    Unit.Description = "claude remote-control in ~/Projects";
+    Service = {
+      WorkingDirectory = "%h/Projects";
+      ExecStart = "${pkgs.claude-code}/bin/claude remote-control";
+      Restart = "on-failure";
+      RestartSec = 10;
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
 
   # Make the NVIDIA driver usable for CUDA without Xorg. Two things don't
   # happen by default without services.xserver.enable:

@@ -49,12 +49,21 @@ in
         llama-gui-presets) and local plugins; `tablet` leaves them out.
       '';
     };
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.opencode;
+      defaultText = lib.literalExpression "pkgs.opencode";
+      description = ''
+        The opencode CLI. The desktop sets this to upstream's flake build
+        (./default.nix); the tablet keeps nixpkgs' unless it overrides it.
+      '';
+    };
   };
 
   config = {
     programs.opencode = {
       enable = true;
-      package = pkgs.opencode;
+      package = cfg.package;
       validateFiles.config = true;
       settings = import ./settings.nix {
         inherit
@@ -64,6 +73,7 @@ in
           secrets
           ;
         flavor = cfg.host;
+        inherit (cfg.package) version;
       };
     };
 

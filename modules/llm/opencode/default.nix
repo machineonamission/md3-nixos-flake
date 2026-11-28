@@ -2,8 +2,8 @@
 #
 # The whole generated config lives in ./hm-module.nix, shared verbatim with
 # the tablet (Arch, standalone home-manager) — see that file's header. This
-# file is only the desktop's NixOS side: the desktop app package + the
-# headless `opencode serve` service.
+# file is only the desktop's NixOS side: the packages (from upstream's flake)
+# + the `opencode serve` user service.
 #
 #   settings.nix    — the config as a Nix value (agents, plugins, mcp, ...)
 #   providers.nix   — providers; llama-swap models generated from modules/llm/models
@@ -26,13 +26,61 @@
 #
 # Check what OpenCode actually loaded (the background service caches config,
 # so use a private server):  opencode debug config --standalone
-{ pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
+let
+  # Upstream's flake (flake.nix input `opencode`), not nixpkgs, which lags
+  # several releases. Bump: change the tag in flake.nix, `nix flake update opencode`.
+  opencodePkgs = inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system};
+
+  # Workaround 1: upstream's node_modules FOD hash (nix/hashes.json) is wrong for
+  # what Bun actually fetches (anomalyco/opencode#59882), so pin the real one.
+  # On a tag bump the build fails with "hash mismatch ... got: sha256-..." —
+  # paste that here (or set it back to upstream's if they fixed it).
+  node_modules = opencodePkgs.opencode.node_modules.override {
+    hash = "sha256-RXrwbOwbYAHuofiv5pgvXCmXlbNhOCrvLmDOT8FjiNs=";
+  };
+
+  # Workaround 2: upstream doesn't ship the config JSON schema, which
+  # home-manager's programs.opencode.validateFiles.config needs as
+  # passthru.jsonschema.config. Generated the same way nixpkgs does.
+  opencode =
+    (opencodePkgs.opencode.override { inherit node_modules; }).overrideAttrs
+      (finalAttrs: old: {
+        postBuild = (old.postBuild or "") + ''
+          bun --bun ../schema/script/config-schema.ts config.json
+        '';
+        postInstall = (old.postInstall or "") + ''
+          install -Dm644 config.json $out/share/config.json
+        '';
+        passthru = old.passthru // {
+          jsonschema.config = "${finalAttrs.finalPackage}/share/config.json";
+        };
+      });
+
+  # Workaround 3: the desktop app bundles the CLI. Upstream's desktop.nix stages
+  # it in $OPENCODE_CLI_DIST, but packages/desktop/script/build.ts ignores that
+  # and only looks in packages/cli/dist (prod channel: "build it first" error).
+  # Stage the fixed CLI there too, same layout (<npm pkg name>/bin + package.json).
+  opencode-desktop =
+    (opencodePkgs.opencode-desktop.override { inherit opencode; }).overrideAttrs
+      (old: {
+        preBuild = (old.preBuild or "") + ''
+          cli_package=$(cd packages/desktop && bun -e 'import { getCurrentCli } from "./script/utils.ts"; console.log(getCurrentCli().package.replace("@opencode/", ""))')
+          mkdir -p "packages/cli/dist/$cli_package/bin"
+          cp ${lib.getExe opencode} "packages/cli/dist/$cli_package/bin/opencode"
+          printf '{"version":"%s"}\n' "$OPENCODE_VERSION" > "packages/cli/dist/$cli_package/package.json"
+        '';
+      });
+in
 {
-  imports = [ ./serve.nix ]; # `opencode serve` at boot (headless)
+  imports = [ ./serve.nix ]; # `opencode serve` as a user service
 
-  # The CLI comes from hm-module.nix (programs.opencode, into melody's
-  # profile); serve.nix (headless) runs `opencode serve` from pkgs.opencode.
-  environment.systemPackages = [ pkgs.opencode-desktop ];
+  # The CLI is installed by hm-module.nix (programs.opencode, into melody's
+  # profile) from m2.opencode.package; serve.nix runs that same package.
+  environment.systemPackages = [ opencode-desktop ];
 
-  home-manager.users.melody.imports = [ ./hm-module.nix ];
+  home-manager.users.melody = {
+    imports = [ ./hm-module.nix ];
+    m2.opencode.package = opencode;
+  };
 }
