@@ -48,6 +48,7 @@ modules/                one concern per file; the file name says what's in it.
                         serve.nix (headless: `opencode serve` at boot)
 home/                   home-manager (melody.nix, spotify.nix)
 docs/                   reference: llama-server --help, llama-swap example config,
+                        repo-structure.md (annotated map of every file),
                         storage-migration.md (disk layout + in-progress btrfs migration runbook)
 scripts/                test.sh (build), deploy.sh (rsync to /etc/nixos + switch)
 ```
