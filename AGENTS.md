@@ -28,6 +28,8 @@ modules/                one concern per file; the file name says what's in it.
                         Plasma, Xorg, kwallet), flatpak.nix, remote-desktop.nix (xrdp)
   programs/             cli-tools.nix (systemPackages), git.nix (system git identity),
                         apps.nix (firefox, steam, kdeconnect, onedrive)
+                        claude-desktop/ (desktop; official .deb repackaged, vendored
+                        from poeck/claude-desktop-nix-flake; bump with its update.sh)
   compat/               non-Nix software: portable.nix (nix-ld + run-portable),
                         appimage.nix, usr-share-mounts.nix (bindfs for flatpak)
   llm/

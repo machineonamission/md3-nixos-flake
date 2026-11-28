@@ -13,6 +13,7 @@
   model,
   valV3,
   flashNext,
+  tieredModel,
   titleModel,
   voiceModel,
 }:
@@ -225,6 +226,17 @@
       name = "Qwen3.8 Flash Next (L448, 16GB)";
       hf = "zephel01/Qwen3.8-Flash-Next-12G32G-GGUF";
       quant = "L448 (zephel01, 16GB)";
+    };
+
+    # The ruriww/llama.cpp fork's tiered build of Flash Next: 512 experts, ~94 GiB,
+    # streamed from the NVMe around a VRAM expert cache. Files in
+    # /var/lib/llm-models/flash-next (llama-swap/helpers.nix rubyModelDir):
+    #   flash-next.gguf     = rev4_rbf_m48_a8_a1u7x64.gguf
+    #   flash-next-mtp.gguf = mtp-i2trn-t0.gguf
+    "Qwen3.8-Flash-Next-Tiered" = tieredModel {
+      name = "Qwen3.8 Flash Next (tiered, ruby fork)";
+      quant = "rev4_rbf_m48_a8_a1u7x64 (trellis tiers)";
+      tags = [ "qwen3.8-flash" ];
     };
 
     "Thomson-1.0-Small" = model {

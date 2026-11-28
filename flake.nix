@@ -18,6 +18,15 @@
       url = "github:ggml-org/llama.cpp";
       flake = false;
     };
+    # The ruriww/llama.cpp fork (tiered MoE runtime for Qwen3.8-Flash-Next), built the
+    # same way as `llama-cpp` but installed as ruby-llama-* so it coexists with it
+    # (modules/llm/llama-swap/helpers.nix). The GitHub repo is
+    # private and nix has no token, so this tracks the local checkout's committed
+    # HEAD. Bump: `nix flake update llama-cpp-ruby` (full CUDA rebuild).
+    llama-cpp-ruby = {
+      url = "git+file:///home/melody/Projects/ruby-llamacppfork?ref=nix-compat";
+      flake = false;
+    };
   };
 
   outputs =

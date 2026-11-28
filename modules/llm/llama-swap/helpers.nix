@@ -2,39 +2,110 @@
 #
 #   entry     — spec -> { name; cmd; checkEndpoint; capabilities; metadata; ... }
 #   llama-cpp — the unified CUDA + Vulkan build every entry runs
+#   llama-cpp-ruby — the ruriww fork (CUDA only), binaries renamed ruby-llama-*
 {
   lib,
   pkgs-llama,
   llama-cpp-src, # flake input `llama-cpp` (master, flake = false)
+  llama-cpp-ruby-src, # flake input `llama-cpp-ruby` (local fork checkout, flake = false)
   fitTarget, # meldesktop.llm.fitTarget: the mode's --fit headroom (MiB); a spec's `fitt` overrides
 }:
 let
+  # Upstream's own Nix expression from a llama.cpp source tree (it tracks the
+  # tree, and its web UI uses importNpmLock, so bumps never need a hash update).
+  # CUDA arch comes from pkgs-llama's cudaCapabilities ("12.0").
+  build =
+    src: backends: cpuFlags:
+    let
+      scope = pkgs-llama.callPackage "${src}/.devops/nix/scope.nix" {
+        llamaVersion = "0-unstable-${lib.substring 0 8 src.lastModifiedDate}";
+      };
+    in
+    (scope.llama-cpp.override backends).overrideAttrs (old: {
+      cmakeFlags =
+        old.cmakeFlags
+        ++ cpuFlags
+        ++ [
+          # shown by `llama-server --version` and /props
+          (lib.cmakeFeature "LLAMA_BUILD_COMMIT" src.shortRev)
+        ];
+    });
+
   # One binary that sees BOTH devices:
   #   CUDA0   -> RTX 5070 Ti (weights of the main coders)
   #   Vulkan0 -> Intel iGPU  (title models + separate MTP draft heads)
-  # Built from source with upstream's own Nix expression (it tracks the tree, and
-  # its web UI uses importNpmLock, so bumps never need a hash update). CUDA arch
-  # comes from pkgs-llama's cudaCapabilities ("12.0").
-  upstream = pkgs-llama.callPackage "${llama-cpp-src}/.devops/nix/scope.nix" {
-    llamaVersion = "0-unstable-${lib.substring 0 8 llama-cpp-src.lastModifiedDate}";
-  };
   llama-cpp =
-    (upstream.llama-cpp.override {
-      useCuda = true;
-      useVulkan = true;
-    }).overrideAttrs
-      (old: {
-        cmakeFlags = old.cmakeFlags ++ [
-          # Upstream's expression builds ONE generic CPU backend; inside the Nix
-          # sandbox that means no AVX2/AVX-VNNI, which cripples the CPU voice model.
-          # Build every CPU variant and pick at runtime (same as nixpkgs).
-          (lib.cmakeBool "GGML_CPU_ALL_VARIANTS" true)
-          (lib.cmakeBool "GGML_BACKEND_DL" true)
-          (lib.cmakeFeature "GGML_BACKEND_DIR" "${placeholder "out"}/bin")
-          # shown by `llama-server --version` and /props
-          (lib.cmakeFeature "LLAMA_BUILD_COMMIT" llama-cpp-src.shortRev)
-        ];
-      });
+    build llama-cpp-src
+      {
+        useCuda = true;
+        useVulkan = true;
+      }
+      [
+        # Upstream's expression builds ONE generic CPU backend; inside the Nix
+        # sandbox that means no AVX2/AVX-VNNI, which cripples the CPU voice model.
+        # Build every CPU variant and pick at runtime (same as nixpkgs).
+        (lib.cmakeBool "GGML_CPU_ALL_VARIANTS" true)
+        (lib.cmakeBool "GGML_BACKEND_DL" true)
+        (lib.cmakeFeature "GGML_BACKEND_DIR" "${placeholder "out"}/bin")
+      ];
+
+  # The fork is CUDA-only (its trellis quants, fusions and KV lending are CUDA
+  # kernels; Vulkan is untested there). libllama calls into the CPU backend
+  # directly (fused MoE expert op), so it can't be a dlopen'd backend: one CPU
+  # backend linked in, built for the i7-14700K (Raptor Lake: AVX2 + AVX-VNNI, no
+  # AVX-512). All listed explicitly: in the Nix sandbox (SOURCE_DATE_EPOCH set)
+  # ggml turns its default ISA flags off.
+  # Only its llama-* executables are exposed, renamed ruby-llama-*, so it sits
+  # next to `llama-cpp` in systemPackages without colliding.
+  llama-cpp-ruby-unwrapped = build llama-cpp-ruby-src { useCuda = true; } (
+    map (isa: lib.cmakeBool "GGML_${isa}" true) [
+      "SSE42"
+      "AVX"
+      "AVX2"
+      "FMA"
+      "F16C"
+      "BMI2"
+      "AVX_VNNI"
+    ]
+  );
+  #
+  # ruby-llama-serve runs the fork's own serve.sh (its MOE_* tuning, chat template
+  # and expert pins stay in the fork). serve.sh reads its files relative to its own
+  # directory, so share/ruby-llama mirrors that layout with models/ pointing at
+  # rubyModelDir, which holds them under serve.sh's names:
+  #   flash-next.gguf      the tiered Qwen3.8-Flash-Next GGUF
+  #   flash-next-mtp.gguf  the MTP sidecar (layer 48)
+  #   mmproj-F16.gguf      optional; images are off without it
+  # Extra args go to llama-server last (e.g. --port, which overrides serve.sh's).
+  rubyModelDir = "/var/lib/llm-models/flash-next";
+  llama-cpp-ruby =
+    pkgs-llama.runCommand "llama-cpp-ruby-${llama-cpp-ruby-unwrapped.version}"
+      {
+        passthru.unwrapped = llama-cpp-ruby-unwrapped;
+        meta.mainProgram = "ruby-llama-server";
+      }
+      ''
+        mkdir -p $out/bin
+        for f in ${llama-cpp-ruby-unwrapped}/bin/llama-*; do
+          [ -x "$f" ] && [ ! -d "$f" ] || continue
+          ln -s "$f" "$out/bin/ruby-$(basename "$f")"
+        done
+        test -e $out/bin/ruby-llama-server
+
+        share=$out/share/ruby-llama
+        mkdir -p $share
+        install -m755 ${llama-cpp-ruby-src}/serve.sh $share/serve.sh
+        patchShebangs $share/serve.sh
+        ln -s ${llama-cpp-ruby-src}/moe-serve $share/moe-serve
+        ln -s ${rubyModelDir} $share/models
+        cat > $out/bin/ruby-llama-serve <<EOF
+        #!${pkgs-llama.runtimeShell}
+        export LLAMA_SERVER="\''${LLAMA_SERVER:-${llama-cpp-ruby-unwrapped}/bin/llama-server}"
+        exec $share/serve.sh "\$@"
+        EOF
+        chmod +x $out/bin/ruby-llama-serve
+      '';
+  rubyServe = lib.getExe' llama-cpp-ruby "ruby-llama-serve";
   server = lib.getExe' llama-cpp "llama-server";
 
   # Where a SEPARATE draft head runs. igpu keeps 100% of the RTX VRAM for the coder.
@@ -216,8 +287,35 @@ let
     };
     capabilities = capabilities s;
   };
+  # Qwen3.8-Flash-Next on the fork's tiered MoE runtime: every flag and MOE_*
+  # knob comes from the fork's serve.sh (ruby-llama-serve above); only the port
+  # is ours. serve.sh keeps its cap-notice state under $HOME/.cache, so HOME
+  # points into llama-swap's writable cache dir (the service is a DynamicUser).
+  tiered = s: {
+    inherit (s) name;
+    cmd = "${rubyServe} --port \${PORT}";
+    env = [ "HOME=/var/cache/llama-swap" ];
+    checkEndpoint = "/health";
+    capabilities = capabilities s;
+    metadata = {
+      inherit (s) quant;
+      max_input_tokens = s.ctx;
+      max_output_tokens = s.maxOutput;
+    };
+  };
 in
 {
-  inherit llama-cpp;
-  entry = s: { inherit coder title voice; }.${s.kind} s;
+  inherit llama-cpp llama-cpp-ruby rubyModelDir;
+  entry =
+    s:
+    {
+      inherit
+        coder
+        title
+        voice
+        tiered
+        ;
+    }
+    .${s.kind}
+      s;
 }

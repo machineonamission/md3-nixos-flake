@@ -27,6 +27,7 @@ let
   llama = import ./helpers.nix {
     inherit lib pkgs-llama;
     llama-cpp-src = inputs.llama-cpp;
+    llama-cpp-ruby-src = inputs.llama-cpp-ruby;
     inherit (config.meldesktop.llm) fitTarget; # per-mode --fit headroom
   };
   cfg = config.services.llama-swap;
@@ -53,7 +54,7 @@ let
   vramMiB = 16000;
   routing =
     s:
-    if s.kind == "coder" then
+    if s.kind == "coder" || s.kind == "tiered" then
       {
         capacities.vram = vramMiB;
         evict_cost = 100; # never worth unloading for voice (the selector skips it anyway)
@@ -67,9 +68,11 @@ let
       { };
 in
 {
-  # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...).
+  # The same CUDA+Vulkan build llama-swap runs (llama-server, llama-cli, ...),
+  # plus the ruriww fork as ruby-llama-server, ruby-llama-cli, ... (helpers.nix).
   environment.systemPackages = [
     llama.llama-cpp
+    llama.llama-cpp-ruby
     cfg.package
   ];
 
@@ -115,4 +118,12 @@ in
   # Vulkan loader straight at Intel's ICD (exposes the iGPU as Vulkan0; the RTX
   # is reached through CUDA).
   systemd.services.llama-swap.environment.VK_ICD_FILENAMES = config.meldesktop.intelIcd;
+
+  # Model files for the fork's tiered models (helpers.nix rubyModelDir). Owned by
+  # melody so they can be dropped in without root; the DynamicUser service can't
+  # read /home (ProtectHome), but /var/lib is readable.
+  systemd.tmpfiles.rules = [
+    "d ${builtins.dirOf llama.rubyModelDir} 0755 melody users -"
+    "d ${llama.rubyModelDir} 0755 melody users -"
+  ];
 }

@@ -8,6 +8,7 @@
 #   model      — a main coder on the RTX (CUDA0), full APEX-I-NanoPlus flag set
 #   valV3      — `model` preset for the Qwen3.8-27B VAL-APEX-I-NanoPlus-V3 family
 #   flashNext  — `model` preset for the Qwen3.8-Flash-Coder / Flash-Next MoE slices
+#   tieredModel — a model served by the ruriww fork's serve.sh (ruby-llama-serve)
 #   titleModel — a tiny title-generation model on the Intel iGPU (Vulkan0)
 { lib }:
 let
@@ -148,6 +149,46 @@ let
       }
     );
 
+  # Qwen3.8-Flash-Next on the ruriww fork's tiered MoE runtime (~94 GiB GGUF:
+  # dense weights + an expert cache in VRAM, the other experts mmapped from the
+  # NVMe). llama-swap runs the fork's serve.sh, which fixes everything server-side
+  # (160k context, MTP, chat template, MOE_EFFORT_BUDGETS); these fields only
+  # describe it to OpenCode, using the values from the fork's SERVE.md:
+  # output 32000, efforts low..max (max = chained thinking, up to 70% of the context).
+  tieredModel =
+    {
+      name,
+      quant,
+      ctx ? 163840,
+      maxOutput ? 32000,
+      image ? false,
+      effort ? "low",
+      efforts ? [
+        "low"
+        "medium"
+        "high"
+        "xhigh"
+        "max"
+      ],
+      tags ? [ ],
+    }:
+    {
+      kind = "tiered";
+      tools = true;
+      mtp = "sidecar"; # in serve.sh; only here for the derived "mtp" tag
+      reasoningBudget = 20000; # xhigh's cap (max has no fixed one)
+      inherit
+        name
+        quant
+        ctx
+        maxOutput
+        image
+        effort
+        efforts
+        tags
+        ;
+    };
+
   # Tiny always-ready title models on the iGPU. Thinking off by default.
   # presencePenalty is a STRING because Nix renders floats as "1.500000".
   titleModel =
@@ -239,6 +280,7 @@ in
     model
     valV3
     flashNext
+    tieredModel
     titleModel
     voiceModel
     ;
