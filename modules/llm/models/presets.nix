@@ -183,6 +183,16 @@ let
       env ? { },
       args ? [ ],
       cpus ? null,
+      # Host-RAM prompt cache (MiB) for juggling OpenCode sessions. The fork's fast
+      # paths (MOE_IDX_COMPACT, MOE_RS_REPLAY, KV lending) need ONE sequence, so it
+      # stays -np 1 and an idle session's state (KV + recurrent checkpoints) is parked
+      # here when another session's request arrives (--cache-idle-slots), then restored
+      # instead of re-prefilled. ~14 KiB/token of q8_0 KV + 3 x ~113 MiB checkpoints:
+      # a 90k-token session is ~1.6 GiB, so 8192 holds ~5 of those (oldest evicted
+      # first; a state bigger than the limit is not cached at all). serve.sh's own
+      # -cram 2048 fits about one. Parked states are anonymous memory, so under
+      # pressure they go to swap instead of evicting the expert page cache wholesale.
+      cacheRamMiB ? 8192,
     }:
     {
       kind = "tiered";
@@ -202,6 +212,7 @@ let
         env
         args
         cpus
+        cacheRamMiB
         ;
     };
 

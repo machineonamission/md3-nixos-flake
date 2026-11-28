@@ -117,6 +117,9 @@ tieredServe), `args` (extra llama-server flags, last wins), `cpus` (taskset). Cu
 (fork docs recommend it; box swaps 12-16 GiB onto the model's NVMe). Benchmark by copying
 serve.sh, sourcing an overrides file before `exec`, and timing /v1/chat/completions
 (efforts need max_tokens >= cap + 12000, else 400).
+Multi-session: the fork's fast paths need one sequence (`-np 1`), so OpenCode sessions are juggled
+through the host-RAM prompt cache instead (`cacheRamMiB`, default 8192 = ~5 parked 90k-token
+sessions; serve.sh's own 2048 fits ~1). Vision: `files.mmproj` = unsloth's Flash-Next mmproj-F16.
 
 ### Home Assistant voice (`voice` selector)
 Home Assistant's voice agent sends model `voice`. Rule: voice never touches a coder (a loaded

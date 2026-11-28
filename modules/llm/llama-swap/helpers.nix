@@ -337,6 +337,8 @@ let
       ++ [
         (lib.getExe (tieredServe s.id s))
         "--port \${PORT}"
+        # multi-session prompt cache, see presets.nix tieredModel cacheRamMiB
+        "--cache-ram ${toString s.cacheRamMiB} --cache-idle-slots"
       ]
       ++ s.args
     );
